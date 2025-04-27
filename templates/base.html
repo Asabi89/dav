@@ -10,28 +10,39 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Font Awesome pour les icônes -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-     <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" as="style">
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style">
-    <link rel="manifest" href="{% static 'manifest.json' %}">
-    <meta name="theme-color" content="#0d9488">
-    <link rel="apple-touch-icon" href="{% static 'images/icons/icon-192x192.png' %}">
+  <!-- Font Awesome (ok) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Préconnexion pour les fonts (ok) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- Import normal des polices (correction : pas besoin de préload séparé) -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Manifest correctement lié (ok) -->
+<link rel="manifest" href="{% static 'js/manifest.json' %}">
+
+<!-- Couleur de thème (ok) -->
+<meta name="theme-color" content="#0d9488">
+
+<!-- Icône Apple (ajustement : ajout de mobile-web-app-capable) -->
+
+<link rel="apple-touch-icon" href="{% static 'images/icons/icon-192x192.png' %}">
+
     
     <!-- Pour iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="OPay">
-    
-    <!-- Pour Microsoft -->
-    <meta name="msapplication-TileImage" content="{% static 'images/icons/icon-144x144.png' %}">
-    <meta name="msapplication-TileColor" content="#0d9488">
-    
-    <!-- Styles communs -->
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
-    
+<meta name="mobile-web-app-capable" content="yes"> <!-- Standard modern -->
+<meta name="apple-mobile-web-app-capable" content="yes"> <!-- Compatibilité ancienne -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OPay">
+
+<!-- Pour Microsoft -->
+<meta name="msapplication-TileImage" content="{% static 'images/icons/icon-144x144.png' %}">
+<meta name="msapplication-TileColor" content="#0d9488">
+<meta name="msapplication-config" content="{% static 'browserconfig.xml' %}">
+
+  
     <!-- Configuration Tailwind personnalisée -->
     <script>
         tailwind.config = {
