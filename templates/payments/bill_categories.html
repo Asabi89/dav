@@ -1,0 +1,491 @@
+{% extends 'base.html' %}
+
+{% block title %}Catégories de factures | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation pour les cartes de catégories */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .category-card {
+        animation: fadeIn 0.3s ease-out forwards;
+        animation-delay: calc(var(--animation-order) * 0.05s);
+        opacity: 0;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .category-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 0.75rem;
+    }
+    
+    /* Styles pour l'icône de catégorie */
+    .category-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #e6f7f5 0%, #d1f5f2 100%);
+    }
+    
+    .category-card:hover .category-icon {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(13, 148, 136, 0.15);
+    }
+    
+    .category-card:hover .category-icon i {
+        transform: scale(1.1);
+    }
+    
+    .category-icon i {
+        transition: all 0.3s ease;
+        color: #0d9488;
+    }
+    
+    /* Badge pour les nouvelles catégories */
+    .new-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #0d9488;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Animation pour les messages */
+    .message-animation {
+        animation: slideIn 0.5s ease-out forwards;
+    }
+    
+    @keyframes slideIn {
+        0% {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+        100% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    /* Styles pour la barre de recherche */
+    .search-container {
+        position: relative;
+    }
+    
+    .search-input {
+        padding-left: 2.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus + .search-icon {
+        color: #0d9488;
+    }
+    
+    /* Styles pour les catégories fréquentes */
+    .frequent-category {
+        transition: all 0.2s ease;
+    }
+    
+    .frequent-category:hover {
+        background-color: #f3f4f6;
+    }
+    
+    /* Styles pour l'état vide */
+    .empty-state {
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        border-radius: 1rem;
+        padding: 3rem 2rem;
+        text-align: center;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Styles pour la bannière promotionnelle */
+    .promo-banner {
+        background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+        border-radius: 1rem;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .promo-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+    }
+    
+    /* Animation pour la bannière */
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(13, 148, 136, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);
+        }
+    }
+    
+    .pulse-button {
+        animation: pulse 2s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-5xl">
+    <!-- En-tête avec titre et description -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2 flex items-center">
+            <i class="fas fa-file-invoice-dollar text-primary-600 mr-2"></i>
+            Paiement de factures
+        </h1>
+        <p class="text-gray-600">Sélectionnez une catégorie pour continuer votre paiement</p>
+    </div>
+    
+    <!-- Messages d'alerte -->
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-xl message-animation {% if message.tags == 'error' %}bg-red-100 text-red-700 border border-red-200{% elif message.tags == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-blue-100 text-blue-700 border border-blue-200{% endif %}">
+            <div class="flex items-center">
+                {% if message.tags == 'error' %}
+                    <i class="fas fa-exclamation-circle mr-2 text-red-500"></i>
+                {% elif message.tags == 'success' %}
+                    <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                {% else %}
+                    <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                {% endif %}
+                {{ message }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Bannière promotionnelle (peut être conditionnelle) -->
+    <div class="promo-banner mb-6 p-4 sm:p-6">
+        <div class="promo-shine"></div>
+        <div class="flex flex-col sm:flex-row items-center justify-between">
+            <div class="mb-4 sm:mb-0">
+                <h3 class="text-white font-bold text-lg mb-1">Payez vos factures sans frais !</h3>
+                <p class="text-white text-opacity-90 text-sm">Profitez de notre promotion : 0 FCFA de frais sur tous vos paiements de factures jusqu'au 31 décembre.</p>
+            </div>
+            <a href="#" class="pulse-button px-4 py-2 bg-white text-primary-600 rounded-md font-medium hover:bg-gray-100 transition-all">
+                En savoir plus
+            </a>
+        </div>
+    </div>
+    
+    <!-- Barre de recherche -->
+    <div class="mb-6">
+        <div class="search-container">
+            <input type="text" id="categorySearch" class="search-input w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Rechercher une catégorie...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+    </div>
+    
+    <!-- Catégories fréquentes (si disponible) -->
+    <div class="mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3">Catégories fréquentes</h2>
+        <div class="flex flex-wrap gap-2">
+            {% for category in frequent_categories|default:'' %}
+            <a href="{% url 'bill_providers' category.id %}" class="frequent-category px-4 py-2 bg-white rounded-full border border-gray-200 flex items-center">
+                <i class="fas {{ category.icon|default:'fa-file-invoice' }} text-primary-600 mr-2"></i>
+                {{ category.name }}
+            </a>
+            {% empty %}
+            <div class="text-gray-500 text-sm py-2">Aucune catégorie fréquente pour le moment</div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Grille de catégories -->
+    <div id="categoriesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {% for category in categories %}
+        <a href="{% url 'bill_providers' category.id %}" class="category-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:border-primary-500 transition-all" style="--animation-order: {{ forloop.counter }}">
+            <!-- Badge nouveau (pour les nouvelles catégories) -->
+            {% if category.is_new %}
+            <div class="new-badge">
+                <i class="fas fa-star mr-1"></i> Nouveau
+            </div>
+            {% endif %}
+            
+            <!-- Effet de brillance -->
+            <div class="card-shine"></div>
+            
+            <div class="p-4 flex flex-col items-center text-center">
+                <!-- Icône de catégorie -->
+                <div class="category-icon">
+                    <i class="fas {{ category.icon|default:'fa-file-invoice' }} text-2xl"></i>
+                </div>
+                
+                <!-- Nom et description -->
+                <h3 class="font-medium text-gray-800 mb-1">{{ category.name }}</h3>
+                {% if category.description %}
+                <p class="text-xs text-gray-500">{{ category.description|truncatechars:40 }}</p>
+                {% endif %}
+                
+                <!-- Nombre de fournisseurs (si disponible) -->
+                {% if category.provider_count %}
+                <div class="mt-2 text-xs text-gray-500">
+                    {{ category.provider_count }} fournisseur{{ category.provider_count|pluralize }}
+                </div>
+                {% endif %}
+            </div>
+        </a>
+        {% empty %}
+        <div class="col-span-full empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-folder-open text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-800 mb-2">Aucune catégorie disponible</h3>
+            <p class="text-gray-500 mb-6">Nous n'avons pas trouvé de catégories de factures disponibles pour le moment.</p>
+            <a href="{% url 'dashboard' %}" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 transition-all">
+                Retour au tableau de bord
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- État vide pour la recherche (initialement caché) -->
+    <div id="emptySearchState" class="hidden col-span-full empty-state mt-6">
+        <div class="empty-icon">
+            <i class="fas fa-search text-gray-400 text-3xl"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-800 mb-2">Aucun résultat trouvé</h3>
+        <p class="text-gray-500 mb-4">Nous n'avons pas trouvé de catégories correspondant à votre recherche.</p>
+        <button id="clearSearchBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-all">
+            Effacer la recherche
+        </button>
+    </div>
+    
+    <!-- Paiements récents (si disponible) -->
+    {% if recent_payments %}
+    <div class="mt-10">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Paiements récents</h2>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+            {% for payment in recent_payments %}
+            <div class="p-4 {% if not forloop.last %}border-b border-gray-100{% endif %}">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-file-invoice-dollar text-primary-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-800">{{ payment.provider.name }}</p>
+                            <p class="text-xs text-gray-500">{{ payment.created_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-gray-800">{{ payment.amount }} FCFA</p>
+                        <a href="{% url 'transaction_detail' payment.transaction.id %}" class="text-xs text-primary-600 hover:underline">Détails</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="p-3 bg-gray-50 text-center">
+                <a href="{% url 'transaction_history' %}?type=payment" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    Voir tous les paiements <i class="fas fa-chevron-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Aide et support -->
+    <div class="mt-10 bg-gray-50 rounded-xl p-4 border border-gray-200">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 mr-3">
+                <i class="fas fa-question-circle text-primary-600 text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-md font-semibold text-gray-800 mb-2">Besoin d'aide ?</h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    Si vous ne trouvez pas la catégorie que vous recherchez ou si vous avez des questions sur le paiement de factures, notre équipe de support est disponible pour vous aider.
+                </p>
+                <a href="{% url 'contact' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center">
+                    Contacter le support <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments DOM
+        const categorySearch = document.getElementById('categorySearch');
+        const categoriesGrid = document.getElementById('categoriesGrid');
+        const categoryCards = document.querySelectorAll('.category-card');
+        const emptySearchState = document.getElementById('emptySearchState');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const promoBanner = document.querySelector('.promo-banner');
+        const promoShine = document.querySelector('.promo-shine');
+        
+        // Fonction pour filtrer les catégories
+        function filterCategories() {
+            const searchTerm = categorySearch.value.toLowerCase();
+            let visibleCount = 0;
+            
+            categoryCards.forEach(card => {
+                const categoryName = card.querySelector('h3').textContent.toLowerCase();
+                const categoryDescription = card.querySelector('p') ? card.querySelector('p').textContent.toLowerCase() : '';
+                
+                if (categoryName.includes(searchTerm) || categoryDescription.includes(searchTerm)) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Afficher l'état vide si aucun résultat
+            if (visibleCount === 0 && searchTerm !== '') {
+                emptySearchState.classList.remove('hidden');
+            } else {
+                emptySearchState.classList.add('hidden');
+            }
+        }
+        
+        // Écouteurs d'événements pour la recherche
+        if (categorySearch) {
+            categorySearch.addEventListener('input', filterCategories);
+        }
+        
+        // Écouteur pour le bouton d'effacement de recherche
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', function() {
+                categorySearch.value = '';
+                filterCategories();
+                categorySearch.focus();
+            });
+        }
+        
+        // Effet de brillance pour la bannière promo
+        if (promoBanner && promoShine) {
+            promoBanner.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                promoShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            promoBanner.addEventListener('mouseleave', function() {
+                promoShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+        
+        // Effet de brillance pour les cartes
+        categoryCards.forEach(card => {
+            const cardShine = card.querySelector('.card-shine');
+            
+            if (cardShine) {
+                card.addEventListener('mousemove', function(e) {
+                    const x = e.offsetX;
+                    const y = e.offsetY;
+                    const width = this.offsetWidth;
+                    const height = this.offsetHeight;
+                    
+                    const xPercent = x / width * 100;
+                    const yPercent = y / height * 100;
+                    
+                    cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+                });
+            }
+        });
+        
+        // Animation d'entrée séquentielle pour les cartes
+        categoryCards.forEach((card, index) => {
+            card.style.setProperty('--animation-order', index);
+        });
+        
+        // Amélioration de l'expérience mobile
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.category-card, .frequent-category').forEach(element => {
+                element.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                element.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

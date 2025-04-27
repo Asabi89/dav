@@ -1,0 +1,828 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Ajouter une carte - OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-shadow {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: box-shadow 0.3s ease, transform 0.2s ease;
+    }
+    
+    .card-shadow:hover {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 5px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .credit-card {
+        width: 100%;
+        height: 200px;
+        border-radius: 16px;
+        perspective: 1000px;
+        margin: 0 auto;
+        max-width: 380px;
+    }
+    
+    .credit-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+    }
+    
+    .credit-card.flipped .credit-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .credit-card-front, .credit-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 16px;
+        overflow: hidden;
+        padding: 20px;
+    }
+    
+    .credit-card-front {
+        background: linear-gradient(135deg, #0f766e, #0d9488);
+        color: white;
+    }
+    
+    .credit-card-back {
+        background: linear-gradient(135deg, #115e59, #0f766e);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .magnetic-stripe {
+        background-color: #000;
+        height: 40px;
+        margin: 20px 0;
+    }
+    
+    .signature-strip {
+        background-color: #fff;
+        height: 40px;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+    }
+    
+    .cvv-box {
+        background-color: #fff;
+        color: #000;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 14px;
+    }
+    
+    .chip {
+        width: 50px;
+        height: 40px;
+        background: linear-gradient(135deg, #ffd700, #ffcc00);
+        border-radius: 8px;
+        position: absolute;
+        top: 50px;
+        left: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 5px;
+    }
+    
+    .chip::before, .chip::after {
+        content: '';
+        display: block;
+        height: 8px;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 2px;
+    }
+    
+    .input-with-icon {
+        position: relative;
+    }
+    
+    .input-with-icon input, 
+    .input-with-icon select {
+        border: 2px solid #e5e7eb;
+        transition: border-color 0.2s ease;
+    }
+    
+    .input-with-icon input:focus,
+    .input-with-icon select:focus {
+        border-color: #0d9488;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(to right, #0d9488, #0f766e);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(to right, #0f766e, #115e59);
+        transform: translateY(-1px);
+    }
+    
+    .card-type-selector {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .card-type-option {
+        flex: 1;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .card-type-option:hover {
+        border-color: #0d9488;
+        background-color: rgba(13, 148, 136, 0.05);
+    }
+    
+    .card-type-option.selected {
+        border-color: #0d9488;
+        background-color: rgba(13, 148, 136, 0.1);
+    }
+    
+    .card-type-option i {
+        font-size: 24px;
+        margin-bottom: 8px;
+        color: #0d9488;
+    }
+    
+    .card-logo {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .card-logo i {
+        font-size: 30px;
+    }
+    
+    @media (max-width: 640px) {
+        .credit-card {
+            height: 180px;
+        }
+        
+        .chip {
+            width: 40px;
+            height: 30px;
+            top: 45px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+    <!-- En-tête avec bouton retour -->
+    <div class="flex items-center mb-6">
+        <a href="{% url 'wallet_detail' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-800">Ajouter une carte</h1>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <!-- Formulaire d'ajout de carte -->
+            <div class="bg-white rounded-xl p-6 mb-6 card-shadow border-2 border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-credit-card text-primary-600 mr-2"></i> Informations de la carte
+                </h2>
+                
+                <!-- Type de carte (version visuelle) -->
+                <div class="card-type-selector mb-6">
+                    <div class="card-type-option selected" data-type="virtual">
+                        <i class="fas fa-mobile-alt"></i>
+                        <p class="font-medium">Carte virtuelle</p>
+                        <p class="text-xs text-gray-500">Pour les achats en ligne</p>
+                    </div>
+                    <div class="card-type-option" data-type="physical">
+                        <i class="fas fa-credit-card"></i>
+                        <p class="font-medium">Carte physique</p>
+                        <p class="text-xs text-gray-500">Pour tous vos achats</p>
+                    </div>
+                </div>
+                
+                <!-- Aperçu de la carte -->
+                <div class="credit-card mb-8" id="creditCard">
+                    <div class="credit-card-inner">
+                        <!-- Face avant de la carte -->
+                        <div class="credit-card-front card-shadow">
+                            <div class="card-logo">
+                                <i class="fab fa-cc-visa"></i>
+                            </div>
+                            <div class="absolute top-4 left-6">
+                                <i class="fas fa-wifi text-white text-xl transform rotate-90"></i>
+                            </div>
+                            <div class="chip"></div>
+                            <div class="absolute top-1/2 left-6 right-6 transform -translate-y-1/2">
+                                <p class="text-xl sm:text-2xl tracking-widest font-mono" id="card-number-preview">**** **** **** ****</p>
+                            </div>
+                            <div class="absolute bottom-4 left-6 right-6">
+                                <div class="flex justify-between items-end">
+                                    <div>
+                                        <p class="text-xs opacity-80 mb-1">TITULAIRE</p>
+                                        <p class="font-medium tracking-wider" id="card-holder-preview">NOM PRÉNOM</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs opacity-80 mb-1">EXPIRE</p>
+                                        <p class="font-medium" id="card-expiry-preview">MM/YY</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Face arrière de la carte -->
+                        <div class="credit-card-back card-shadow">
+                            <div class="magnetic-stripe"></div>
+                            <div class="signature-strip">
+                                <div class="flex justify-between items-center w-full">
+                                    <div class="text-gray-800 font-mono text-sm truncate max-w-[60%]" id="card-holder-back-preview">NOM PRÉNOM</div>
+                                    <div class="cvv-box" id="card-cvv-preview">***</div>
+                                </div>
+                            </div>
+                            <div class="absolute bottom-4 right-4">
+                                <i class="fab fa-cc-visa text-white text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="post" class="space-y-6" id="cardForm">
+                    {% csrf_token %}
+                    
+                    <!-- Champ numéro de carte -->
+                    <div class="input-with-icon">
+                        <label for="{{ form.card_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Numéro de carte <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-credit-card text-gray-400"></i>
+                            </div>
+                            {% render_field form.card_number class="form-input pl-10 py-3 rounded-lg" placeholder="1234 5678 9012 3456" maxlength="19" %}
+                        </div>
+                        {% if form.card_number.errors %}
+                        <p class="text-red-600 text-sm mt-1">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.card_number.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Champ titulaire -->
+                    <div class="input-with-icon">
+                        <label for="{{ form.card_holder.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Titulaire de la carte <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400"></i>
+                            </div>
+                            {% render_field form.card_holder class="form-input pl-10 py-3 rounded-lg" placeholder="NOM PRÉNOM" %}
+                        </div>
+                        {% if form.card_holder.errors %}
+                        <p class="text-red-600 text-sm mt-1">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.card_holder.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Date d'expiration et CVV -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Date d'expiration <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="input-with-icon">
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-calendar-alt text-gray-400"></i>
+                                        </div>
+                                        {% render_field form.expiry_month class="form-input pl-10 py-3 rounded-lg" placeholder="MM" min="1" max="12" %}
+                                    </div>
+                                    {% if form.expiry_month.errors %}
+                                    <p class="text-red-600 text-sm mt-1">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                        {{ form.expiry_month.errors.0 }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                <div class="input-with-icon">
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-calendar text-gray-400"></i>
+                                        </div>
+                                        {% render_field form.expiry_year class="form-input pl-10 py-3 rounded-lg" placeholder="YYYY" min="2023" max="2033" %}
+                                    </div>
+                                    {% if form.expiry_year.errors %}
+                                    <p class="text-red-600 text-sm mt-1">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                        {{ form.expiry_year.errors.0 }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-with-icon">
+                            <label for="{{ form.cvv.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Code de sécurité (CVV) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-lock text-gray-400"></i>
+                                </div>
+                                {% render_field form.cvv class="form-input pl-10 py-3 rounded-lg" placeholder="123" maxlength="3" %}
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                    <button type="button" id="cvvInfoBtn" class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-question-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% if form.cvv.errors %}
+                            <p class="text-red-600 text-sm mt-1">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                {{ form.cvv.errors.0 }}
+                            </p>
+                            {% endif %}
+                            <p class="text-xs text-gray-500 mt-1">Le code à 3 chiffres au dos de votre carte</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Type de carte (champ caché) -->
+                    <div class="hidden">
+                        {{ form.card_type }}
+                    </div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                        <button type="submit" class="btn-primary w-full sm:w-auto px-6 py-3 text-white rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center">
+                            <i class="fas fa-plus-circle mr-2"></i> Ajouter la carte
+                        </button>
+                        <a href="{% url 'wallet_detail' %}" class="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-center transition-colors">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="lg:col-span-1">
+            <!-- Informations de sécurité -->
+            <div class="bg-white rounded-xl p-6 card-shadow border-2 border-gray-100 mb-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-shield-alt text-primary-600 mr-2"></i> Sécurité
+                </h2>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700">
+                                Vos informations de carte sont sécurisées et cryptées. Nous ne stockons jamais le code CVV de votre carte.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-lock text-primary-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-800">Cryptage de bout en bout</h3>
+                            <p class="text-sm text-gray-600">Toutes vos données sont cryptées selon les normes PCI DSS.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-fingerprint text-primary-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-800">Authentification forte</h3>
+                            <p class="text-sm text-gray-600">Chaque transaction nécessite une vérification supplémentaire.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-bell text-primary-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-800">Alertes en temps réel</h3>
+                            <p class="text-sm text-gray-600">Recevez des notifications pour chaque transaction.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Avantages des cartes -->
+            <div class="bg-white rounded-xl p-6 card-shadow border-2 border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-star text-primary-600 mr-2"></i> Avantages
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-globe text-primary-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-800">Acceptée partout</h3>
+                            <p class="text-sm text-gray-600">Utilisez votre carte dans le monde entier, en ligne ou en magasin.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-hand-holding-usd text-primary-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-800">Sans frais cachés</h3>
+                            <p class="text-sm text-gray-600">Aucuns frais de tenue de compte ou de transactions.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-sliders-h text-primary-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-800">Contrôle total</h3>
+                            <p class="text-sm text-gray-600">Activez ou désactivez votre carte à tout moment depuis l'application.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-undo text-primary-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-800">Cashback</h3>
+                            <p class="text-sm text-gray-600">Jusqu'à 1% de cashback sur tous vos achats.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments du formulaire
+        const cardNumberInput = document.getElementById('{{ form.card_number.id_for_label }}');
+        const cardHolderInput = document.getElementById('{{ form.card_holder.id_for_label }}');
+        const expiryMonthInput = document.getElementById('{{ form.expiry_month.id_for_label }}');
+        const expiryYearInput = document.getElementById('{{ form.expiry_year.id_for_label }}');
+        const cvvInput = document.getElementById('{{ form.cvv.id_for_label }}');
+        const cardTypeSelect = document.getElementById('{{ form.card_type.id_for_label }}');
+        
+        // Éléments d'aperçu
+        const cardNumberPreview = document.getElementById('card-number-preview');
+        const cardHolderPreview = document.getElementById('card-holder-preview');
+        const cardHolderBackPreview = document.getElementById('card-holder-back-preview');
+        const cardExpiryPreview = document.getElementById('card-expiry-preview');
+        const cardCvvPreview = document.getElementById('card-cvv-preview');
+        const creditCard = document.getElementById('creditCard');
+        
+        // Sélecteurs de type de carte
+        const cardTypeOptions = document.querySelectorAll('.card-type-option');
+        
+        // Bouton d'info CVV
+        const cvvInfoBtn = document.getElementById('cvvInfoBtn');
+        
+        // Formater le numéro de carte
+        cardNumberInput.addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '').substring(0, 16);
+            let formattedValue = '';
+            
+            if (value.length > 0) {
+                // Masquer tous les chiffres sauf les 4 derniers
+                const lastFourVisible = value.length > 12;
+                
+                for (let i = 0; i < value.length; i++) {
+                    if (i > 0 && i % 4 === 0) {
+                        formattedValue += ' ';
+                    }
+                    
+                    if (lastFourVisible && i >= 12) {
+                        formattedValue += value[i];
+                    } else if (value.length === 16 && i >= 12) {
+                        formattedValue += value[i];
+                    } else {
+                        formattedValue += '*';
+                    }
+                }
+                
+                cardNumberPreview.textContent = formattedValue;
+            } else {
+                cardNumberPreview.textContent = '**** **** **** ****';
+            }
+        });
+        
+        // Mettre à jour le nom du titulaire
+        cardHolderInput.addEventListener('input', function() {
+            if (this.value) {
+                const upperCaseValue = this.value.toUpperCase();
+                cardHolderPreview.textContent = upperCaseValue;
+                cardHolderBackPreview.textContent = upperCaseValue;
+            } else {
+                cardHolderPreview.textContent = 'NOM PRÉNOM';
+                cardHolderBackPreview.textContent = 'NOM PRÉNOM';
+            }
+        });
+        
+        // Mettre à jour la date d'expiration
+        function updateExpiry() {
+            const month = expiryMonthInput.value.padStart(2, '0');
+            const year = expiryYearInput.value ? expiryYearInput.value.substring(2) : 'YY';
+            
+            if (expiryMonthInput.value || expiryYearInput.value) {
+                cardExpiryPreview.textContent = `${month}/${year}`;
+            } else {
+                cardExpiryPreview.textContent = 'MM/YY';
+            }
+        }
+        
+        expiryMonthInput.addEventListener('input', updateExpiry);
+        expiryYearInput.addEventListener('input', updateExpiry);
+        
+        // Mettre à jour le CVV
+        cvvInput.addEventListener('input', function() {
+            if (this.value) {
+                cardCvvPreview.textContent = this.value.replace(/./g, '*');
+            } else {
+                cardCvvPreview.textContent = '***';
+            }
+        });
+        
+        // Retourner la carte quand on focus sur le CVV
+        cvvInput.addEventListener('focus', function() {
+            creditCard.classList.add('flipped');
+        });
+        
+        cvvInput.addEventListener('blur', function() {
+            creditCard.classList.remove('flipped');
+        });
+        
+        // Afficher des informations sur le CVV
+        cvvInfoBtn.addEventListener('click', function() {
+            creditCard.classList.toggle('flipped');
+            setTimeout(() => {
+                creditCard.classList.remove('flipped');
+            }, 3000);
+        });
+        
+        // Sélection du type de carte
+        cardTypeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const type = this.getAttribute('data-type');
+                
+                // Mettre à jour la sélection visuelle
+                cardTypeOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                
+                // Mettre à jour le champ caché
+                cardTypeSelect.value = type;
+            });
+        });
+        
+        // Validation du formulaire
+        const cardForm = document.getElementById('cardForm');
+        
+        if (cardForm) {
+            cardForm.addEventListener('submit', function(e) {
+                let isValid = true;
+                
+                // Vérifier si les champs obligatoires sont remplis
+                if (!cardNumberInput.value.trim() || cardNumberInput.value.replace(/\D/g, '').length !== 16) {
+                    isValid = false;
+                    cardNumberInput.classList.add('border-red-500');
+                } else {
+                    cardNumberInput.classList.remove('border-red-500');
+                }
+                
+                if (!cardHolderInput.value.trim()) {
+                    isValid = false;
+                    cardHolderInput.classList.add('border-red-500');
+                } else {
+                    cardHolderInput.classList.remove('border-red-500');
+                }
+                
+                if (!expiryMonthInput.value.trim() || parseInt(expiryMonthInput.value) < 1 || parseInt(expiryMonthInput.value) > 12) {
+                    isValid = false;
+                    expiryMonthInput.classList.add('border-red-500');
+                } else {
+                    expiryMonthInput.classList.remove('border-red-500');
+                }
+                
+                if (!expiryYearInput.value.trim() || parseInt(expiryYearInput.value) < new Date().getFullYear()) {
+                    isValid = false;
+                    expiryYearInput.classList.add('border-red-500');
+                } else {
+                    expiryYearInput.classList.remove('border-red-500');
+                }
+                
+                if (!cvvInput.value.trim() || cvvInput.value.replace(/\D/g, '').length !== 3) {
+                    isValid = false;
+                    cvvInput.classList.add('border-red-500');
+                } else {
+                    cvvInput.classList.remove('border-red-500');
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    alert('Veuillez remplir correctement tous les champs obligatoires.');
+                    return false;
+                }
+                
+                // Confirmation de l'ajout de la carte
+                if (!confirm('Êtes-vous sûr de vouloir ajouter cette carte ? Veuillez vérifier que les informations sont correctes.')) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Afficher un indicateur de chargement
+                const submitButton = this.querySelector('button[type="submit"]');
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Traitement en cours...';
+                submitButton.disabled = true;
+            });
+        }
+        
+        // Formater automatiquement le numéro de carte avec des espaces
+cardNumberInput.addEventListener('input', function(e) {
+    // Stocker la position du curseur
+    const cursorPosition = this.selectionStart;
+    const previousLength = this.value.length;
+    
+    // Supprimer tous les caractères non numériques
+    let value = this.value.replace(/\D/g, '');
+    
+    // Limiter à 16 chiffres
+    value = value.substring(0, 16);
+    
+    let formattedValue = '';
+    
+    // Ajouter des espaces tous les 4 chiffres
+    for (let i = 0; i < value.length; i++) {
+        if (i > 0 && i % 4 === 0) {
+            formattedValue += ' ';
+        }
+        formattedValue += value[i];
+    }
+    
+    // Mettre à jour la valeur
+    this.value = formattedValue;
+    
+    // Ajuster la position du curseur après le formatage
+    const newLength = this.value.length;
+    const addedSpaces = (Math.floor(value.length / 4)) - (Math.floor((value.length - 1) / 4));
+    
+    if (cursorPosition === previousLength) {
+        // Si le curseur était à la fin, le laisser à la fin
+        this.setSelectionRange(newLength, newLength);
+    } else {
+        // Sinon, ajuster la position en tenant compte des espaces ajoutés
+        const newPosition = cursorPosition + (addedSpaces > 0 ? 1 : 0);
+        this.setSelectionRange(Math.min(newPosition, newLength), Math.min(newPosition, newLength));
+    }
+    
+    // Mettre à jour l'aperçu de la carte
+    updateCardNumberPreview(value);
+});
+
+// Fonction pour mettre à jour l'aperçu du numéro de carte
+function updateCardNumberPreview(value) {
+    const cardNumberPreview = document.getElementById('card-number-preview');
+    
+    if (value.length > 0) {
+        // Masquer tous les chiffres sauf les 4 derniers
+        let displayValue = '';
+        for (let i = 0; i < 16; i++) {
+            if (i > 0 && i % 4 === 0) {
+                displayValue += ' ';
+            }
+            
+            if (i < value.length) {
+                // Afficher les 4 derniers chiffres, masquer les autres
+                if (i >= value.length - 4) {
+                    displayValue += value[i];
+                } else {
+                    displayValue += '*';
+                }
+            } else {
+                displayValue += '*';
+            }
+        }
+        cardNumberPreview.textContent = displayValue;
+    } else {
+        cardNumberPreview.textContent = '**** **** **** ****';
+    }
+}
+
+// Ajouter un gestionnaire d'événement pour le formulaire
+document.getElementById('cardForm').addEventListener('submit', function(e) {
+    // Récupérer le champ de numéro de carte
+    const cardNumberInput = document.getElementById('{{ form.card_number.id_for_label }}');
+    
+    // Supprimer tous les espaces avant de soumettre
+    cardNumberInput.value = cardNumberInput.value.replace(/\s/g, '');
+    
+    // Vérifier que le numéro a 16 chiffres
+    if (cardNumberInput.value.length !== 16) {
+        e.preventDefault();
+        alert('Le numéro de carte doit contenir 16 chiffres.');
+        // Reformater le numéro avec des espaces pour l'affichage
+        let value = cardNumberInput.value;
+        let formattedValue = '';
+        for (let i = 0; i < value.length; i++) {
+            if (i > 0 && i % 4 === 0) {
+                formattedValue += ' ';
+            }
+            formattedValue += value[i];
+        }
+        cardNumberInput.value = formattedValue;
+        return false;
+    }
+});
+
+        // Détecter automatiquement le type de carte en fonction du numéro
+        cardNumberInput.addEventListener('input', function() {
+            const number = this.value.replace(/\D/g, '');
+            const cardLogo = document.querySelector('.card-logo i');
+            
+            // Visa: commence par 4
+            if (number.startsWith('4')) {
+                cardLogo.className = 'fab fa-cc-visa';
+            }
+            // Mastercard: commence par 51-55 ou 2221-2720
+            else if (/^5[1-5]/.test(number) || /^2[2-7][2-9][0-9]/.test(number)) {
+                cardLogo.className = 'fab fa-cc-mastercard';
+            }
+            // American Express: commence par 34 ou 37
+            else if (/^3[47]/.test(number)) {
+                cardLogo.className = 'fab fa-cc-amex';
+            }
+            // Discover: commence par 6011, 622126-622925, 644-649, 65
+            else if (/^6(011|5|4[4-9]|22[1-9])/.test(number)) {
+                cardLogo.className = 'fab fa-cc-discover';
+            }
+            // Par défaut
+            else {
+                cardLogo.className = 'fab fa-credit-card';
+            }
+        });
+        
+        // Animation des cartes
+        const cards = document.querySelectorAll('.card-shadow');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                if (!this.closest('.credit-card')) { // Ne pas animer la carte de crédit elle-même
+                    this.style.transform = 'translateY(-5px)';
+                }
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                if (!this.closest('.credit-card')) {
+                    this.style.transform = 'translateY(0)';
+                }
+            });
+        });
+        
+        // Initialiser le type de carte sélectionné
+        const initialCardType = cardTypeSelect.value || 'virtual';
+        cardTypeOptions.forEach(option => {
+            if (option.getAttribute('data-type') === initialCardType) {
+                option.classList.add('selected');
+            } else {
+                option.classList.remove('selected');
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

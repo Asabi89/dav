@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Vérification du téléphone | OPay{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-[70vh]">
+    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="px-6 pt-8 pb-4">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-mobile-alt text-primary-600 text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Vérification du téléphone</h2>
+                <p class="text-gray-600 mt-2">Nous avons envoyé un code de vérification à <strong>{{ user.phone_number }}</strong>.</p>
+                
+                {% if simulator_active and simulator_code %}
+                <div class="mt-4 p-3 bg-yellow-100 text-yellow-800 rounded-xl border border-yellow-200">
+                    <p class="font-medium flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Mode simulateur actif
+                    </p>
+                    <p class="mt-1">Votre code de vérification est: <span class="font-bold text-lg tracking-wider">{{ simulator_code }}</span></p>
+                    <p class="mt-1 text-xs">Ce code est affiché car Twilio n'est pas configuré ou est désactivé.</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="{% if message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %} px-4 py-3 rounded-xl mb-3">
+                    <p>{{ message }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <form method="post" action="{% url 'verify_phone' %}">
+                {% csrf_token %}
+                <div class="mb-6">
+                    <label for="id_verification_code" class="block text-gray-700 font-medium mb-2 text-center">Code de vérification</label>
+                    <div class="flex justify-center">
+                        <div class="otp-input-container flex space-x-2 justify-center">
+                            <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                            <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                            <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                            <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                            <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                            <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        </div>
+                        <input type="hidden" name="verification_code" id="id_verification_code" maxlength="6" required>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center shadow-md transition duration-200">
+                        <i class="fas fa-check-circle mr-2"></i> Vérifier
+                    </button>
+                </div>
+            </form>
+            
+            <div class="text-center mt-6 border-t border-gray-200 pt-6">
+                <p class="text-gray-600 mb-2">Vous n'avez pas reçu de code ?</p>
+                <form method="post" action="{% url 'resend_verification_code' %}" class="mt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="text-primary-600 hover:text-primary-800 font-medium">
+                        <i class="fas fa-redo-alt mr-1"></i> Renvoyer le code
+                    </button>
+                </form>
+                
+                <div class="mt-4 text-sm text-gray-500">
+                    <i class="fas fa-info-circle mr-1"></i> Le code expire dans <span id="countdown">05:00</span>
+                </div>
+            </div>
+            
+            {% if simulator_active and simulator_code %}
+            <div class="mt-4 text-center">
+                <button type="button" id="auto-fill-code" class="text-sm text-primary-600 hover:text-primary-800 font-medium">
+                    <i class="fas fa-magic mr-1"></i> Remplir automatiquement le code
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInputs = document.querySelectorAll('.otp-input-container input');
+    const hiddenInput = document.getElementById('id_verification_code');
+    
+    // Focus sur le premier champ au chargement
+    otpInputs[0].focus();
+    
+    // Gérer la saisie des chiffres du code
+    otpInputs.forEach((input, index) => {
+        input.addEventListener('input', function(e) {
+            if (e.target.value) {
+                // Passer au champ suivant si disponible
+                if (index < otpInputs.length - 1) {
+                    otpInputs[index + 1].focus();
+                }
+            }
+            // Mettre à jour le champ caché avec la valeur complète du code
+            updateHiddenInput();
+        });
+        
+        // Gérer la touche de suppression
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                otpInputs[index - 1].focus();
+                otpInputs[index - 1].value = '';
+                updateHiddenInput();
+            }
+        });
+    });
+    
+    // Mettre à jour le champ caché avec la valeur complète du code
+    function updateHiddenInput() {
+        let code = '';
+        otpInputs.forEach(input => {
+            code += input.value;
+        });
+        hiddenInput.value = code;
+    }
+    
+    // Compte à rebours
+    let timeLeft = 5 * 60; // 5 minutes en secondes
+    const countdownEl = document.getElementById('countdown');
+    const countdownTimer = setInterval(function() {
+        const minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+        seconds = seconds < 10 ? '0' + seconds : seconds;
+        countdownEl.textContent = minutes + ':' + seconds;
+        
+        if (timeLeft <= 0) {
+            clearInterval(countdownTimer);
+            countdownEl.textContent = '00:00';
+        }
+        timeLeft--;
+    }, 1000);
+    
+    // Fonction pour remplir automatiquement le code en mode simulateur
+    const autoFillButton = document.getElementById('auto-fill-code');
+    if (autoFillButton) {
+        autoFillButton.addEventListener('click', function() {
+            {% if simulator_code %}
+            const simulatorCode = "{{ simulator_code }}";
+            for (let i = 0; i < simulatorCode.length && i < otpInputs.length; i++) {
+                otpInputs[i].value = simulatorCode[i];
+            }
+            updateHiddenInput();
+            {% endif %}
+        });
+    }
+});
+</script>
+{% endblock %}

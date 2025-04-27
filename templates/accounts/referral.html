@@ -1,0 +1,581 @@
+{% extends 'base.html' %}
+
+{% block title %}Programme de parrainage | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation d'entrée pour les éléments */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-in {
+        animation: fadeInUp 0.5s ease-out forwards;
+        opacity: 0;
+    }
+    
+    .animate-delay-1 {
+        animation-delay: 0.1s;
+    }
+    
+    .animate-delay-2 {
+        animation-delay: 0.2s;
+    }
+    
+    .animate-delay-3 {
+        animation-delay: 0.3s;
+    }
+    
+    .animate-delay-4 {
+        animation-delay: 0.4s;
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 1rem;
+    }
+    
+    /* Styles pour les cartes */
+    .referral-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-radius: 1rem;
+    }
+    
+    /* Animation pour le bouton de copie */
+    @keyframes checkmark {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .success-icon {
+        animation: checkmark 0.8s ease-in-out forwards;
+    }
+    
+    /* Animation de confetti */
+    @keyframes confetti-fall {
+        0% {
+            transform: translateY(-100px) rotate(0deg);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+        }
+    }
+    
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background-color: var(--confetti-color);
+        opacity: 0;
+        animation: confetti-fall 4s ease-in-out forwards;
+    }
+    
+    /* Styles pour les boutons de partage */
+    .share-button {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(4px);
+    }
+    
+    .share-button:hover {
+        transform: translateY(-3px);
+    }
+    
+    .share-button::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+    }
+    
+    .share-button:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+        0% {
+            transform: scale(0, 0);
+            opacity: 0.5;
+        }
+        100% {
+            transform: scale(20, 20);
+            opacity: 0;
+        }
+    }
+    
+    /* Animation pour les étapes */
+    @keyframes pulse-border {
+        0% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(13, 148, 136, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);
+        }
+    }
+    
+    .step-icon:hover {
+        animation: pulse-border 2s infinite;
+    }
+    
+    /* Styles pour le tableau */
+    .referral-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .referral-table th {
+        background-color: #f9fafb;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.75rem;
+        color: #6b7280;
+        padding: 0.75rem 1rem;
+        text-align: left;
+    }
+    
+    .referral-table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-top: 1px solid #f3f4f6;
+    }
+    
+    .referral-table tr:hover {
+        background-color: #f9fafb;
+    }
+    
+    /* Badge de statut */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.025em;
+    }
+    
+    /* Animation pour le code de parrainage */
+    @keyframes highlight {
+        0% {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        50% {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        100% {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    }
+    
+    .highlight-animation {
+        animation: highlight 2s ease-in-out infinite;
+    }
+    
+    /* Styles pour les cartes */
+    .card {
+        background-color: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Confetti container (ajouté par JS) -->
+    <div id="confetti-container"></div>
+    
+    <!-- En-tête -->
+    <div class="mb-8 animate-fade-in">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Programme de parrainage</h1>
+        <p class="text-gray-600 text-lg">Invitez vos amis et gagnez des récompenses</p>
+    </div>
+    
+    {% if messages %}
+    <div class="mb-6 animate-fade-in animate-delay-1">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-xl {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Carte de parrainage -->
+    <div class="referral-card bg-gradient-to-r from-primary-600 to-primary-700 text-white mb-8 shadow-lg animate-fade-in animate-delay-1">
+        <div class="card-shine"></div>
+        <div class="p-6">
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="w-24 h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-4 transform transition-transform hover:scale-110">
+                    <i class="fas fa-gift text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">Parrainez vos amis</h2>
+                <p class="text-primary-100">Gagnez 5€ pour chaque ami qui s'inscrit et effectue sa première transaction</p>
+            </div>
+            
+            <div class="bg-white bg-opacity-10 rounded-lg p-4 mb-6 highlight-animation">
+                <p class="text-sm text-primary-100 mb-2">Votre code de parrainage</p>
+                <div class="flex items-center">
+                    <span id="referralCode" class="text-2xl font-bold tracking-wider flex-grow">{{ referral_code }}</span>
+                    <button id="copyCode" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-3 rounded-md transition-all">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <a href="https://wa.me/?text={{ referral_url|urlencode }}" target="_blank" class="share-button bg-white bg-opacity-20 hover:bg-opacity-30 py-3 px-4 rounded-lg text-center transition-all flex items-center justify-center">
+                    <i class="fab fa-whatsapp mr-2 text-lg"></i> WhatsApp
+                </a>
+                
+                <a href="https://t.me/share/url?url={{ referral_url|urlencode }}" target="_blank" class="share-button bg-white bg-opacity-20 hover:bg-opacity-30 py-3 px-4 rounded-lg text-center transition-all flex items-center justify-center">
+                    <i class="fab fa-telegram mr-2 text-lg"></i> Telegram
+                </a>
+                
+                <a href="mailto:?subject=Rejoignez OPay&body={{ referral_url|urlencode }}" class="share-button bg-white bg-opacity-20 hover:bg-opacity-30 py-3 px-4 rounded-lg text-center transition-all flex items-center justify-center">
+                    <i class="fas fa-envelope mr-2 text-lg"></i> Email
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Comment ça marche -->
+    <div class="card mb-8 animate-fade-in animate-delay-2">
+        <h2 class="text-xl font-semibold mb-6 flex items-center">
+            <i class="fas fa-info-circle text-primary-600 mr-2"></i> Comment ça marche
+        </h2>
+        
+        <div class="space-y-6">
+            <div class="flex items-start">
+                <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mr-4 flex-shrink-0 step-icon">
+                    <span class="text-primary-600 font-bold">1</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-1">Partagez votre code</h3>
+                    <p class="text-gray-600">Envoyez votre code de parrainage ou lien à vos amis via WhatsApp, Telegram ou email</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mr-4 flex-shrink-0 step-icon">
+                    <span class="text-primary-600 font-bold">2</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-1">Inscription de votre ami</h3>
+                    <p class="text-gray-600">Votre ami s'inscrit en utilisant votre code de parrainage et crée son compte OPay</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mr-4 flex-shrink-0 step-icon">
+                    <span class="text-primary-600 font-bold">3</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-1">Première transaction</h3>
+                    <p class="text-gray-600">Votre ami effectue sa première transaction d'un montant minimum de 10€</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mr-4 flex-shrink-0 step-icon">
+                    <span class="text-primary-600 font-bold">4</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-1">Recevez votre récompense</h3>
+                    <p class="text-gray-600">Vous recevez 5€ sur votre compte OPay et votre ami reçoit également 5€ de bonus</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vos parrainages -->
+    <div class="card animate-fade-in animate-delay-3">
+        <h2 class="text-xl font-semibold mb-6 flex items-center">
+            <i class="fas fa-users text-primary-600 mr-2"></i> Vos parrainages
+        </h2>
+        
+        {% if referrals %}
+        <div class="overflow-x-auto">
+            <table class="referral-table">
+                <thead>
+                    <tr>
+                        <th>Utilisateur</th>
+                        <th>Date d'inscription</th>
+                        <th>Statut</th>
+                        <th>Récompense</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for referral in referrals %}
+                    <tr>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <span class="text-primary-600 font-bold">{{ referral.first_name|first }}{{ referral.last_name|first }}</span>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ referral.get_full_name }}</div>
+                                    <div class="text-sm text-gray-500">{{ referral.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="text-sm text-gray-900">{{ referral.date_joined|date:"d/m/Y" }}</div>
+                            <div class="text-sm text-gray-500">{{ referral.date_joined|time:"H:i" }}</div>
+                        </td>
+                        <td>
+                            {% if referral.is_verified %}
+                            <span class="status-badge bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i> Vérifié
+                            </span>
+                            {% else %}
+                            <span class="status-badge bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-clock mr-1"></i> En attente
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if referral.has_completed_transaction %}
+                            <span class="status-badge bg-green-100 text-green-800">
+                                <i class="fas fa-coins mr-1"></i> 5€ reçus
+                            </span>
+                            {% else %}
+                            <span class="status-badge bg-gray-100 text-gray-800">
+                                <i class="fas fa-hourglass-half mr-1"></i> En attente
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-10 bg-gray-50 rounded-xl">
+            <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-users text-gray-400 text-2xl"></i>
+            </div>
+            <p class="text-gray-500 mb-2">Vous n'avez pas encore parrainé d'amis</p>
+            <p class="text-sm text-gray-400 mb-6">Partagez votre code pour commencer à gagner des récompenses</p>
+            
+            <button id="startSharingBtn" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all">
+                <i class="fas fa-share-alt mr-2"></i> Commencer à partager
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- FAQ -->
+    <div class="card animate-fade-in animate-delay-4">
+        <h2 class="text-xl font-semibold mb-6 flex items-center">
+            <i class="fas fa-question-circle text-primary-600 mr-2"></i> Questions fréquentes
+        </h2>
+        
+        <div class="space-y-4">
+            <div class="border-b border-gray-100 pb-4">
+                <h3 class="font-medium text-gray-800 mb-2">Combien puis-je gagner avec le programme de parrainage ?</h3>
+                <p class="text-gray-600">Vous pouvez gagner 5€ pour chaque ami parrainé qui s'inscrit et effectue sa première transaction. Il n'y a pas de limite au nombre d'amis que vous pouvez parrainer.</p>
+            </div>
+            
+            <div class="border-b border-gray-100 pb-4">
+                <h3 class="font-medium text-gray-800 mb-2">Quand vais-je recevoir ma récompense ?</h3>
+                <p class="text-gray-600">Vous recevrez votre récompense de 5€ automatiquement dès que votre ami aura effectué sa première transaction d'un montant minimum de 10€.</p>
+            </div>
+            
+            <div class="border-b border-gray-100 pb-4">
+                <h3 class="font-medium text-gray-800 mb-2">Mon ami reçoit-il aussi une récompense ?</h3>
+                <p class="text-gray-600">Oui, votre ami recevra également 5€ de bonus sur son compte OPay après avoir effectué sa première transaction.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-medium text-gray-800 mb-2">Comment mon ami peut-il utiliser mon code de parrainage ?</h3>
+                <p class="text-gray-600">Votre ami doit saisir votre code de parrainage lors de son inscription sur OPay ou cliquer directement sur le lien de parrainage que vous lui avez envoyé.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments DOM
+        const copyCodeBtn = document.getElementById('copyCode');
+        const referralCode = document.getElementById('referralCode');
+        const startSharingBtn = document.getElementById('startSharingBtn');
+        
+        // Fonction pour copier le code de parrainage
+        if (copyCodeBtn && referralCode) {
+            copyCodeBtn.addEventListener('click', function() {
+                const code = "{{ referral_code }}";
+                navigator.clipboard.writeText(code).then(function() {
+                    // Changer l'icône pour indiquer le succès
+                    copyCodeBtn.innerHTML = '<i class="fas fa-check success-icon"></i>';
+                    
+                    // Créer des confettis pour célébrer
+                    createConfetti();
+                    
+                    // Restaurer l'icône originale après un délai
+                    setTimeout(() => {
+                        copyCodeBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                    }, 2000);
+                }, function() {
+                    alert('Impossible de copier le code');
+                });
+            });
+        }
+        
+        // Faire défiler jusqu'à la carte de parrainage
+        if (startSharingBtn) {
+            startSharingBtn.addEventListener('click', function() {
+                const referralCard = document.querySelector('.referral-card');
+                if (referralCard) {
+                    referralCard.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        }
+        
+        // Effet de brillance pour la carte de parrainage
+        const referralCard = document.querySelector('.referral-card');
+        const cardShine = document.querySelector('.card-shine');
+        
+        if (referralCard && cardShine) {
+            referralCard.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            referralCard.addEventListener('mouseleave', function() {
+                cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+        
+        // Fonction pour créer l'animation de confetti
+        function createConfetti() {
+            const confettiContainer = document.getElementById('confetti-container');
+            const colors = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4'];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.setProperty('--confetti-color', colors[Math.floor(Math.random() * colors.length)]);
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+                
+                // Formes variées pour les confettis
+                const shape = Math.floor(Math.random() * 3);
+                if (shape === 0) {
+                    // Carré
+                    confetti.style.borderRadius = '0';
+                } else if (shape === 1) {
+                    // Cercle
+                    confetti.style.borderRadius = '50%';
+                } else {
+                    // Triangle (en utilisant un pseudo-élément)
+                    confetti.style.width = '0';
+                    confetti.style.height = '0';
+                    confetti.style.borderLeft = '5px solid transparent';
+                    confetti.style.borderRight = '5px solid transparent';
+                    confetti.style.borderBottom = '10px solid var(--confetti-color)';
+                    confetti.style.background = 'transparent';
+                }
+                
+                confettiContainer.appendChild(confetti);
+                
+                // Supprimer les confettis après l'animation
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+        
+        // Animation pour les icônes d'étape
+        document.querySelectorAll('.step-icon').forEach(icon => {
+            icon.addEventListener('mouseenter', function() {
+                this.querySelector('span').classList.add('fa-beat');
+            });
+            
+            icon.addEventListener('mouseleave', function() {
+                this.querySelector('span').classList.remove('fa-beat');
+            });
+        });
+        
+        // Amélioration de l'expérience mobile
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.share-button').forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                button.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        }
+        
+        // Ajouter un effet de survol pour les lignes du tableau
+        document.querySelectorAll('.referral-table tbody tr').forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f9fafb';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+        });
+    });
+</script>
+{% endblock %}

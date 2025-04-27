@@ -1,0 +1,645 @@
+{% extends 'base.html' %}
+
+{% block title %}Définir un code PIN | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation d'entrée pour les éléments */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-in {
+        animation: fadeInUp 0.5s ease-out forwards;
+        opacity: 0;
+    }
+    
+    .animate-delay-1 {
+        animation-delay: 0.1s;
+    }
+    
+    .animate-delay-2 {
+        animation-delay: 0.2s;
+    }
+    
+    .animate-delay-3 {
+        animation-delay: 0.3s;
+    }
+    
+    /* Animation pour les champs PIN */
+    @keyframes pulse-border {
+        0% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(13, 148, 136, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);
+        }
+    }
+    
+    .pin-input:focus, .confirm-pin-input:focus {
+        animation: pulse-border 2s infinite;
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 1rem;
+    }
+    
+    /* Styles pour la carte */
+    .pin-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        padding: 2rem;
+    }
+    
+    /* Styles pour les champs PIN */
+    .pin-input, .confirm-pin-input {
+        transition: all 0.3s ease;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+    }
+    
+    .pin-input.filled, .confirm-pin-input.filled {
+        background-color: #f3f4f6;
+    }
+    
+    .pin-input.error, .confirm-pin-input.error {
+        border-color: #ef4444;
+        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    
+    @keyframes shake {
+        10%, 90% {
+            transform: translate3d(-1px, 0, 0);
+        }
+        20%, 80% {
+            transform: translate3d(2px, 0, 0);
+        }
+        30%, 50%, 70% {
+            transform: translate3d(-3px, 0, 0);
+        }
+        40%, 60% {
+            transform: translate3d(3px, 0, 0);
+        }
+    }
+    
+    /* Animation pour l'icône */
+    @keyframes keyTurn {
+        0% {
+            transform: rotate(0deg);
+        }
+        25% {
+            transform: rotate(-20deg);
+        }
+        75% {
+            transform: rotate(20deg);
+        }
+        100% {
+            transform: rotate(0deg);
+        }
+    }
+    
+    .key-icon:hover {
+        animation: keyTurn 1s ease-in-out;
+    }
+    
+    /* Styles pour le clavier numérique */
+    .numpad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    .numpad-key {
+        aspect-ratio: 1/1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 600;
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .numpad-key:hover {
+        background-color: #f3f4f6;
+        transform: translateY(-2px);
+    }
+    
+    .numpad-key:active {
+        background-color: #e5e7eb;
+        transform: translateY(0);
+    }
+    
+    .numpad-key.delete {
+        grid-column: span 3;
+        background-color: #fee2e2;
+        color: #b91c1c;
+    }
+    
+    .numpad-key.delete:hover {
+        background-color: #fecaca;
+    }
+    
+    /* Animation de succès */
+    @keyframes checkmark {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .success-icon {
+        animation: checkmark 0.8s ease-in-out forwards;
+    }
+    
+    /* Styles pour les conseils de sécurité */
+    .security-tip {
+        background-color: #f3f4f6;
+        border-left: 4px solid #0d9488;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-top: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-[80vh]">
+    <div class="pin-card w-full max-w-md mx-auto animate-fade-in">
+        <div class="card-shine"></div>
+        
+        <!-- En-tête -->
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 key-icon">
+                <i class="fas fa-key text-primary-600 text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">Définir un code PIN</h2>
+            <p class="text-gray-600 mt-2">Veuillez définir un code PIN à 4 chiffres pour sécuriser vos transactions.</p>
+        </div>
+        
+        <!-- Messages d'alerte -->
+        {% if messages %}
+        <div class="mb-6 animate-fade-in animate-delay-1">
+            {% for message in messages %}
+            <div class="p-4 {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %} rounded-xl mb-4">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Formulaire de PIN -->
+        <form method="post" action="{% url 'set_pin' %}" class="animate-fade-in animate-delay-2">
+            {% csrf_token %}
+            
+            <!-- Premier PIN -->
+            <div class="mb-8">
+                <label for="id_pin_code" class="block text-gray-700 font-medium mb-3 text-center">
+                    Code PIN (4 chiffres)
+                </label>
+                <div class="flex justify-center">
+                    <div class="pin-input-container flex space-x-3 justify-center">
+                        <input type="password" maxlength="1" class="pin-input w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="pin-input w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="pin-input w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="pin-input w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                    </div>
+                    <input type="hidden" name="pin_code" id="id_pin_code" maxlength="4" required>
+                </div>
+            </div>
+            
+            <!-- Confirmation du PIN -->
+            <div class="mb-8">
+                <label for="id_confirm_pin_code" class="block text-gray-700 font-medium mb-3 text-center">
+                    Confirmer le code PIN
+                </label>
+                <div class="flex justify-center">
+                    <div class="confirm-pin-input-container flex space-x-3 justify-center">
+                        <input type="password" maxlength="1" class="confirm-pin-input w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="confirm-pin-input w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="confirm-pin-input w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="confirm-pin-input w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                    </div>
+                    <input type="hidden" name="confirm_pin_code" id="id_confirm_pin_code" maxlength="4" required>
+                </div>
+            </div>
+            
+            <!-- Clavier numérique virtuel -->
+            <div class="mb-8 animate-fade-in animate-delay-3">
+                <h3 class="text-center text-gray-700 font-medium mb-3">Clavier numérique</h3>
+                <div class="numpad">
+                    <div class="numpad-key" data-value="1">1</div>
+                    <div class="numpad-key" data-value="2">2</div>
+                    <div class="numpad-key" data-value="3">3</div>
+                    <div class="numpad-key" data-value="4">4</div>
+                    <div class="numpad-key" data-value="5">5</div>
+                    <div class="numpad-key" data-value="6">6</div>
+                    <div class="numpad-key" data-value="7">7</div>
+                    <div class="numpad-key" data-value="8">8</div>
+                    <div class="numpad-key" data-value="9">9</div>
+                    <div class="numpad-key" data-value="0">0</div>
+                    <div class="numpad-key delete" data-action="delete">
+                        <i class="fas fa-backspace"></i> Effacer
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bouton de soumission -->
+            <div class="mb-6">
+                <button type="submit" class="w-full py-3 px-4 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all">
+                    <i class="fas fa-shield-alt mr-2"></i> Définir le code PIN
+                </button>
+            </div>
+            
+            <!-- Conseils de sécurité -->
+            <div class="security-tip animate-fade-in animate-delay-3">
+                <h4 class="font-medium text-gray-800 mb-2 flex items-center">
+                    <i class="fas fa-info-circle text-primary-600 mr-2"></i> Conseils de sécurité
+                </h4>
+                <ul class="text-sm text-gray-600 space-y-1">
+                    <li>• Ne partagez jamais votre code PIN avec qui que ce soit</li>
+                    <li>• Évitez d'utiliser des séquences évidentes (1234, 0000, etc.)</li>
+                    <li>• N'utilisez pas votre date de naissance ou d'autres informations personnelles</li>
+                </ul>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments DOM pour le premier PIN
+        const pinInputs = document.querySelectorAll('.pin-input');
+        const hiddenPinInput = document.getElementById('id_pin_code');
+        
+        // Éléments DOM pour la confirmation du PIN
+        const confirmPinInputs = document.querySelectorAll('.confirm-pin-input');
+        const hiddenConfirmPinInput = document.getElementById('id_confirm_pin_code');
+        
+        // Clavier numérique virtuel
+        const numpadKeys = document.querySelectorAll('.numpad-key');
+        
+               // Variable pour suivre le champ actif
+        let activeInput = pinInputs[0];
+        
+        // Focus sur le premier champ au chargement
+        pinInputs[0].focus();
+        
+        // Gérer la saisie des chiffres du PIN
+        pinInputs.forEach((input, index) => {
+            input.addEventListener('input', function(e) {
+                // S'assurer que seuls les chiffres sont acceptés
+                if (!/^\d*$/.test(e.target.value)) {
+                    e.target.value = e.target.value.replace(/\D/g, '');
+                }
+                
+                if (e.target.value) {
+                    // Ajouter la classe "filled" pour indiquer que le champ est rempli
+                    e.target.classList.add('filled');
+                    
+                    // Passer au champ suivant si disponible
+                    if (index < pinInputs.length - 1) {
+                        pinInputs[index + 1].focus();
+                        activeInput = pinInputs[index + 1];
+                    } else {
+                        // Si c'est le dernier champ, passer au premier champ de confirmation
+                        confirmPinInputs[0].focus();
+                        activeInput = confirmPinInputs[0];
+                    }
+                } else {
+                    // Retirer la classe "filled" si le champ est vide
+                    e.target.classList.remove('filled');
+                }
+                
+                // Mettre à jour le champ caché avec la valeur complète du PIN
+                updateHiddenPin();
+            });
+            
+            // Gérer la touche de suppression
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    pinInputs[index - 1].focus();
+                    pinInputs[index - 1].value = '';
+                    pinInputs[index - 1].classList.remove('filled');
+                    activeInput = pinInputs[index - 1];
+                    updateHiddenPin();
+                }
+            });
+            
+            // Suivre le champ actif
+            input.addEventListener('focus', function() {
+                activeInput = this;
+            });
+        });
+        
+        // Gérer la saisie des chiffres du PIN de confirmation
+        confirmPinInputs.forEach((input, index) => {
+            input.addEventListener('input', function(e) {
+                // S'assurer que seuls les chiffres sont acceptés
+                if (!/^\d*$/.test(e.target.value)) {
+                    e.target.value = e.target.value.replace(/\D/g, '');
+                }
+                
+                if (e.target.value) {
+                    // Ajouter la classe "filled" pour indiquer que le champ est rempli
+                    e.target.classList.add('filled');
+                    
+                    // Passer au champ suivant si disponible
+                    if (index < confirmPinInputs.length - 1) {
+                        confirmPinInputs[index + 1].focus();
+                        activeInput = confirmPinInputs[index + 1];
+                    }
+                } else {
+                    // Retirer la classe "filled" si le champ est vide
+                    e.target.classList.remove('filled');
+                }
+                
+                // Mettre à jour le champ caché avec la valeur complète du PIN de confirmation
+                updateHiddenConfirmPin();
+                
+                // Vérifier si les PINs correspondent
+                checkPinsMatch();
+            });
+            
+            // Gérer la touche de suppression
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    confirmPinInputs[index - 1].focus();
+                    confirmPinInputs[index - 1].value = '';
+                    confirmPinInputs[index - 1].classList.remove('filled');
+                    activeInput = confirmPinInputs[index - 1];
+                    updateHiddenConfirmPin();
+                }
+            });
+            
+            // Suivre le champ actif
+            input.addEventListener('focus', function() {
+                activeInput = this;
+            });
+        });
+        
+        // Gérer le clavier numérique virtuel
+        numpadKeys.forEach(key => {
+            key.addEventListener('click', function() {
+                // Vérifier s'il s'agit de la touche de suppression
+                if (this.dataset.action === 'delete') {
+                    // Simuler la touche Backspace
+                    const event = new KeyboardEvent('keydown', {
+                        key: 'Backspace',
+                        bubbles: true
+                    });
+                    activeInput.dispatchEvent(event);
+                    
+                    // Effacer la valeur du champ actif
+                    activeInput.value = '';
+                    activeInput.classList.remove('filled');
+                    
+                    // Mettre à jour les champs cachés
+                    updateHiddenPin();
+                    updateHiddenConfirmPin();
+                    
+                    // Vérifier si les PINs correspondent
+                    checkPinsMatch();
+                    
+                    return;
+                }
+                
+                // Ajouter le chiffre au champ actif
+                if (activeInput && activeInput.value.length < 1) {
+                    activeInput.value = this.dataset.value;
+                    
+                    // Déclencher l'événement input pour activer les gestionnaires
+                    const event = new Event('input', { bubbles: true });
+                    activeInput.dispatchEvent(event);
+                }
+            });
+            
+            // Ajouter un effet de pression
+            key.addEventListener('mousedown', function() {
+                this.style.transform = 'scale(0.95)';
+            });
+            
+            key.addEventListener('mouseup', function() {
+                this.style.transform = '';
+            });
+            
+            // Effet tactile pour les appareils mobiles
+            key.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.95)';
+            });
+            
+            key.addEventListener('touchend', function() {
+                this.style.transform = '';
+            });
+        });
+        
+        // Mettre à jour le champ caché avec la valeur complète du PIN
+        function updateHiddenPin() {
+            let pin = '';
+            pinInputs.forEach(input => {
+                pin += input.value;
+            });
+            hiddenPinInput.value = pin;
+        }
+        
+        // Mettre à jour le champ caché avec la valeur complète du PIN de confirmation
+        function updateHiddenConfirmPin() {
+            let confirmPin = '';
+            confirmPinInputs.forEach(input => {
+                confirmPin += input.value;
+            });
+            hiddenConfirmPinInput.value = confirmPin;
+        }
+        
+        // Vérifier si les PINs correspondent
+        function checkPinsMatch() {
+            const pin = hiddenPinInput.value;
+            const confirmPin = hiddenConfirmPinInput.value;
+            
+            // Vérifier uniquement si les deux PINs sont complets
+            if (pin.length === 4 && confirmPin.length === 4) {
+                if (pin !== confirmPin) {
+                    // Ajouter une classe d'erreur aux champs de confirmation
+                    confirmPinInputs.forEach(input => {
+                        input.classList.add('border-red-500', 'error');
+                    });
+                    
+                    // Afficher un message d'erreur s'il n'existe pas déjà
+                    let errorMsg = document.querySelector('.pin-error-message');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('p');
+                        errorMsg.classList.add('pin-error-message', 'text-red-500', 'text-sm', 'mt-2', 'text-center');
+                        errorMsg.innerText = 'Les codes PIN ne correspondent pas.';
+                        document.querySelector('.confirm-pin-input-container').parentNode.appendChild(errorMsg);
+                    }
+                } else {
+                    // Supprimer la classe d'erreur
+                    confirmPinInputs.forEach(input => {
+                        input.classList.remove('border-red-500', 'error');
+                    });
+                    
+                    // Supprimer le message d'erreur s'il existe
+                    const errorMsg = document.querySelector('.pin-error-message');
+                    if (errorMsg) {
+                        errorMsg.remove();
+                    }
+                    
+                    // Ajouter une classe de succès
+                    confirmPinInputs.forEach(input => {
+                        input.classList.add('border-green-500');
+                    });
+                    
+                    // Afficher un message de succès s'il n'existe pas déjà
+                    let successMsg = document.querySelector('.pin-success-message');
+                    if (!successMsg) {
+                        successMsg = document.createElement('p');
+                        successMsg.classList.add('pin-success-message', 'text-green-500', 'text-sm', 'mt-2', 'text-center');
+                        successMsg.innerHTML = '<i class="fas fa-check-circle success-icon mr-1"></i> Les codes PIN correspondent.';
+                        document.querySelector('.confirm-pin-input-container').parentNode.appendChild(successMsg);
+                    }
+                }
+            }
+        }
+        
+        // Validation du formulaire avant soumission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const pin = hiddenPinInput.value;
+            const confirmPin = hiddenConfirmPinInput.value;
+            
+            // Vérifier que les PINs sont complets
+            if (pin.length !== 4 || confirmPin.length !== 4) {
+                e.preventDefault();
+                
+                // Mettre en évidence les champs incomplets
+                if (pin.length !== 4) {
+                    pinInputs.forEach(input => {
+                        if (!input.value) {
+                            input.classList.add('border-red-500', 'error');
+                        }
+                    });
+                }
+                
+                if (confirmPin.length !== 4) {
+                    confirmPinInputs.forEach(input => {
+                        if (!input.value) {
+                            input.classList.add('border-red-500', 'error');
+                        }
+                    });
+                }
+                
+                // Afficher un message d'erreur
+                alert('Veuillez saisir un code PIN à 4 chiffres.');
+                return;
+            }
+            
+            // Vérifier que les PINs correspondent
+            if (pin !== confirmPin) {
+                e.preventDefault();
+                
+                // Mettre en évidence les champs de confirmation
+                confirmPinInputs.forEach(input => {
+                    input.classList.add('border-red-500', 'error');
+                });
+                
+                // Afficher un message d'erreur
+                alert('Les codes PIN ne correspondent pas.');
+                return;
+            }
+            
+            // Vérifier que le PIN contient uniquement des chiffres
+            if (!/^\d{4}$/.test(pin)) {
+                e.preventDefault();
+                
+                // Mettre en évidence tous les champs
+                pinInputs.forEach(input => {
+                    input.classList.add('border-red-500', 'error');
+                });
+                
+                // Afficher un message d'erreur
+                alert('Le code PIN doit contenir uniquement des chiffres.');
+                return;
+            }
+            
+            // Vérifier si le PIN est trop simple
+            if (isSimplePin(pin)) {
+                if (!confirm('Ce code PIN semble facile à deviner. Voulez-vous quand même l\'utiliser ?')) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+        });
+        
+        // Fonction pour vérifier si un PIN est trop simple
+        function isSimplePin(pin) {
+            // Séquences simples
+            const simpleSequences = ['1234', '2345', '3456', '4567', '5678', '6789', '9876', '8765', '7654', '6543', '5432', '4321'];
+            
+            // Chiffres répétés
+            const repeatedDigits = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999'];
+            
+            // Paires répétées
+            const repeatedPairs = ['0101', '1010', '1212', '2121', '2323', '3232', '4545', '5454', '6767', '7676', '8989', '9898'];
+            
+            return simpleSequences.includes(pin) || repeatedDigits.includes(pin) || repeatedPairs.includes(pin);
+        }
+        
+        // Effet de brillance pour la carte
+        const pinCard = document.querySelector('.pin-card');
+        const cardShine = document.querySelector('.card-shine');
+        
+        if (pinCard && cardShine) {
+            pinCard.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            pinCard.addEventListener('mouseleave', function() {
+                cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+    });
+</script>
+{% endblock %}

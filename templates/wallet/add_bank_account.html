@@ -1,0 +1,506 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Ajouter un compte bancaire - OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-shadow {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease, transform 0.2s ease;
+    }
+    
+    .card-shadow:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .input-with-icon {
+        position: relative;
+    }
+    
+    .input-with-icon input, 
+    .input-with-icon select {
+        border: 2px solid #e5e7eb;
+        transition: border-color 0.2s ease;
+    }
+    
+    .input-with-icon input:focus,
+    .input-with-icon select:focus {
+        border-color: #0d9488;
+    }
+    
+    .info-card {
+        border-left: 4px solid #0d9488;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(to right, #0d9488, #0f766e);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(to right, #0f766e, #115e59);
+        transform: translateY(-1px);
+    }
+    
+    .bank-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .bank-card {
+        border: 2px solid #e5e7eb;
+        background: linear-gradient(135deg, #ffffff, #f9fafb);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .bank-card-header {
+        background: linear-gradient(to right, #0d9488, #0f766e);
+        color: white;
+        padding: 1rem;
+    }
+    
+    .bank-logo {
+        width: 40px;
+        height: 40px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .bank-card-body {
+        padding: 1.5rem;
+    }
+    
+    .bank-card-footer {
+        background-color: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        padding: 1rem 1.5rem;
+    }
+    
+    .verification-steps {
+        counter-reset: step;
+    }
+    
+    .verification-step {
+        position: relative;
+        padding-left: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .verification-step:before {
+        counter-increment: step;
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1.75rem;
+        height: 1.75rem;
+        background-color: #0d9488;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .verification-step:after {
+        content: '';
+        position: absolute;
+        left: 0.875rem;
+        top: 1.75rem;
+        bottom: -0.5rem;
+        width: 1px;
+        background-color: #e5e7eb;
+        transform: translateX(-50%);
+    }
+    
+    .verification-step:last-child:after {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- En-tête avec bouton retour -->
+    <div class="flex items-center mb-6">
+        <a href="{% url 'wallet_detail' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-800">Ajouter un compte bancaire</h1>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <!-- Formulaire d'ajout de compte bancaire -->
+            <div class="bg-white rounded-xl p-6 mb-6 card-shadow border-2 border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-university text-primary-600 mr-2"></i> Informations du compte
+                </h2>
+                
+                <form method="post" class="space-y-6" id="bankAccountForm">
+                    {% csrf_token %}
+                    
+                    <!-- Nom de la banque -->
+                    <div class="input-with-icon">
+                        <label for="{{ form.bank_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nom de la banque <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-university text-gray-400"></i>
+                            </div>
+                            {% render_field form.bank_name class="form-input pl-10 py-3 rounded-lg" placeholder="Ex: BICEC, UBA, Ecobank..." %}
+                        </div>
+                        {% if form.bank_name.errors %}
+                        <p class="text-red-600 text-sm mt-1">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.bank_name.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Numéro de compte -->
+                    <div class="input-with-icon">
+                        <label for="{{ form.account_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Numéro de compte <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-hashtag text-gray-400"></i>
+                            </div>
+                            {% render_field form.account_number class="form-input pl-10 py-3 rounded-lg" placeholder="Numéro de compte ou IBAN" %}
+                        </div>
+                        {% if form.account_number.errors %}
+                        <p class="text-red-600 text-sm mt-1">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.account_number.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Titulaire du compte -->
+                    <div class="input-with-icon">
+                        <label for="{{ form.account_holder.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Titulaire du compte <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400"></i>
+                            </div>
+                            {% render_field form.account_holder class="form-input pl-10 py-3 rounded-lg" placeholder="Nom complet du titulaire" %}
+                        </div>
+                        {% if form.account_holder.errors %}
+                        <p class="text-red-600 text-sm mt-1">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.account_holder.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Type de compte -->
+                    <div class="input-with-icon">
+                        <label for="{{ form.account_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Type de compte <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-list text-gray-400"></i>
+                            </div>
+                            {% render_field form.account_type class="form-select pl-10 py-3 rounded-lg bank-select" %}
+                        </div>
+                        {% if form.account_type.errors %}
+                        <p class="text-red-600 text-sm mt-1">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.account_type.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Compte principal -->
+                    <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                        <div class="flex-shrink-0">
+                            {% render_field form.is_primary class="form-checkbox h-5 w-5 text-primary-600 rounded" %}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.is_primary.id_for_label }}" class="font-medium text-gray-700">Définir comme compte principal</label>
+                            <p class="text-gray-500 text-sm">Ce compte sera utilisé par défaut pour les dépôts et retraits</p>
+                        </div>
+                        {% if form.is_primary.errors %}
+                        <p class="text-red-600 text-sm mt-1">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.is_primary.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                        <button type="submit" class="btn-primary w-full sm:w-auto px-6 py-3 text-white rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center">
+                            <i class="fas fa-plus-circle mr-2"></i> Ajouter le compte
+                        </button>
+                        <a href="{% url 'wallet_detail' %}" class="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-center transition-colors">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Aperçu du compte bancaire -->
+            <div class="bank-card card-shadow mb-6">
+                <div class="bank-card-header flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="bank-logo">
+                            <i class="fas fa-university"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="font-bold text-white" id="previewBankName">Nom de la banque</h3>
+                            <p class="text-xs text-white opacity-80" id="previewAccountType">Type de compte</p>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded">Aperçu</span>
+                    </div>
+                </div>
+                <div class="bank-card-body">
+                    <div class="mb-4">
+                        <p class="text-xs text-gray-500">NUMÉRO DE COMPTE</p>
+                        <p class="font-mono font-medium text-gray-800" id="previewAccountNumber">XXXX XXXX XXXX XXXX</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">TITULAIRE</p>
+                        <p class="font-medium text-gray-800" id="previewAccountHolder">Nom du titulaire</p>
+                    </div>
+                </div>
+                <div class="bank-card-footer flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-gray-500">STATUT</span>
+                        <span class="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">En attente de vérification</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500" id="previewPrimary">Compte secondaire</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="lg:col-span-1">
+            <!-- Informations de vérification -->
+            <div class="bg-white rounded-xl p-6 card-shadow border-2 border-gray-100">
+            </h2>
+                
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-info-circle text-blue-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            Pour des raisons de sécurité, votre compte bancaire devra être vérifié avant de pouvoir effectuer des dépôts ou des retraits. Ce processus peut prendre jusqu'à 24 heures.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="verification-steps">
+                <div class="verification-step">
+                    <h3 class="font-medium text-gray-800">Ajout des informations</h3>
+                    <p class="text-sm text-gray-600">Remplissez le formulaire avec les informations de votre compte bancaire.</p>
+                </div>
+                
+                <div class="verification-step">
+                    <h3 class="font-medium text-gray-800">Vérification des données</h3>
+                    <p class="text-sm text-gray-600">Nous vérifions l'exactitude des informations fournies.</p>
+                </div>
+                
+                <div class="verification-step">
+                    <h3 class="font-medium text-gray-800">Micro-dépôt de confirmation</h3>
+                    <p class="text-sm text-gray-600">Un petit montant sera déposé sur votre compte pour confirmer qu'il vous appartient.</p>
+                </div>
+                
+                <div class="verification-step">
+                    <h3 class="font-medium text-gray-800">Validation finale</h3>
+                    <p class="text-sm text-gray-600">Une fois le micro-dépôt confirmé, votre compte sera activé pour les transactions.</p>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <h3 class="font-medium text-gray-800 mb-2">Documents requis</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    Dans certains cas, nous pourrions vous demander de fournir les documents suivants :
+                </p>
+                <ul class="space-y-2 text-sm text-gray-600">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                        Relevé bancaire récent (moins de 3 mois)
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                        Pièce d'identité valide
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                        Justificatif de domicile
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- FAQ -->
+        <div class="bg-white rounded-xl p-6 mt-6 card-shadow border-2 border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-question-circle text-primary-600 mr-2"></i> Questions fréquentes
+            </h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-1">Combien de comptes puis-je ajouter ?</h3>
+                    <p class="text-sm text-gray-600">Vous pouvez ajouter jusqu'à 5 comptes bancaires différents à votre portefeuille OPay.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-1">Puis-je modifier les informations de mon compte ?</h3>
+                    <p class="text-sm text-gray-600">Une fois ajouté, vous ne pourrez pas modifier les informations du compte. Vous devrez supprimer le compte et en ajouter un nouveau.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-medium text-gray-800 mb-1">Mes informations bancaires sont-elles sécurisées ?</h3>
+                    <p class="text-sm text-gray-600">Oui, toutes vos informations bancaires sont cryptées selon les normes de sécurité les plus strictes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Éléments du formulaire
+    const bankNameInput = document.getElementById('{{ form.bank_name.id_for_label }}');
+    const accountNumberInput = document.getElementById('{{ form.account_number.id_for_label }}');
+    const accountHolderInput = document.getElementById('{{ form.account_holder.id_for_label }}');
+    const accountTypeSelect = document.getElementById('{{ form.account_type.id_for_label }}');
+    const isPrimaryCheckbox = document.getElementById('{{ form.is_primary.id_for_label }}');
+    
+    // Éléments d'aperçu
+    const previewBankName = document.getElementById('previewBankName');
+    const previewAccountNumber = document.getElementById('previewAccountNumber');
+    const previewAccountHolder = document.getElementById('previewAccountHolder');
+    const previewAccountType = document.getElementById('previewAccountType');
+    const previewPrimary = document.getElementById('previewPrimary');
+    
+    // Fonction pour mettre à jour l'aperçu
+    function updatePreview() {
+        previewBankName.textContent = bankNameInput.value || 'Nom de la banque';
+        
+        // Masquer le numéro de compte pour l'aperçu
+        const accountNumber = accountNumberInput.value;
+        if (accountNumber) {
+            if (accountNumber.length > 8) {
+                const lastFour = accountNumber.slice(-4);
+                const maskedPart = '*'.repeat(accountNumber.length - 4);
+                previewAccountNumber.textContent = maskedPart + lastFour;
+            } else {
+                previewAccountNumber.textContent = accountNumber;
+            }
+        } else {
+            previewAccountNumber.textContent = 'XXXX XXXX XXXX XXXX';
+        }
+        
+        previewAccountHolder.textContent = accountHolderInput.value || 'Nom du titulaire';
+        
+        // Mettre à jour le type de compte
+        const selectedOption = accountTypeSelect.options[accountTypeSelect.selectedIndex];
+        previewAccountType.textContent = selectedOption ? selectedOption.text : 'Type de compte';
+        
+        // Mettre à jour le statut principal
+        previewPrimary.textContent = isPrimaryCheckbox.checked ? 'Compte principal' : 'Compte secondaire';
+        previewPrimary.className = isPrimaryCheckbox.checked ? 
+            'text-xs bg-primary-100 text-primary-800 px-2 py-1 rounded-full' : 
+            'text-xs text-gray-500';
+    }
+    
+    // Ajouter des écouteurs d'événements pour mettre à jour l'aperçu en temps réel
+    bankNameInput.addEventListener('input', updatePreview);
+    accountNumberInput.addEventListener('input', updatePreview);
+    accountHolderInput.addEventListener('input', updatePreview);
+    accountTypeSelect.addEventListener('change', updatePreview);
+    isPrimaryCheckbox.addEventListener('change', updatePreview);
+    
+    // Initialiser l'aperçu
+    updatePreview();
+    
+    // Validation du formulaire
+    const bankAccountForm = document.getElementById('bankAccountForm');
+    
+    if (bankAccountForm) {
+        bankAccountForm.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Vérifier si les champs obligatoires sont remplis
+            if (!bankNameInput.value.trim()) {
+                isValid = false;
+                bankNameInput.classList.add('border-red-500');
+            } else {
+                bankNameInput.classList.remove('border-red-500');
+            }
+            
+            if (!accountNumberInput.value.trim()) {
+                isValid = false;
+                accountNumberInput.classList.add('border-red-500');
+            } else {
+                accountNumberInput.classList.remove('border-red-500');
+            }
+            
+            if (!accountHolderInput.value.trim()) {
+                isValid = false;
+                accountHolderInput.classList.add('border-red-500');
+            } else {
+                accountHolderInput.classList.remove('border-red-500');
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Veuillez remplir tous les champs obligatoires.');
+                return false;
+            }
+            
+            // Confirmation de l'ajout du compte
+            if (!confirm('Êtes-vous sûr de vouloir ajouter ce compte bancaire ? Veuillez vérifier que les informations sont correctes.')) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Afficher un indicateur de chargement
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Traitement en cours...';
+            submitButton.disabled = true;
+        });
+    }
+    
+    // Animation des cartes
+    const cards = document.querySelectorAll('.card-shadow');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

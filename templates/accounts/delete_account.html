@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+
+{% block title %}Supprimer mon compte | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation pour l'icône d'avertissement */
+    @keyframes pulse-warning {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+    
+    .warning-icon {
+        animation: pulse-warning 2s infinite;
+    }
+    
+    /* Style pour les étapes */
+    .step {
+        position: relative;
+        padding-left: 2.5rem;
+    }
+    
+    .step::before {
+        content: '';
+        position: absolute;
+        left: 0.75rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #f3f4f6;
+        z-index: 0;
+    }
+    
+    .step:last-child::before {
+        display: none;
+    }
+    
+    .step-number {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background-color: #f3f4f6;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 1;
+    }
+    
+    /* Animation pour le bouton de confirmation */
+    .confirm-button {
+        transition: all 0.3s ease;
+    }
+    
+    .confirm-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Animation pour la case à cocher */
+    .checkbox-container {
+        position: relative;
+        padding-left: 2rem;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .checkbox-container input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+    
+    .checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 1.25rem;
+        width: 1.25rem;
+        background-color: #fff;
+        border: 2px solid #e5e7eb;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+    
+    .checkbox-container:hover input ~ .checkmark {
+        border-color: #d1d5db;
+    }
+    
+    .checkbox-container input:checked ~ .checkmark {
+        background-color: #ef4444;
+        border-color: #ef4444;
+    }
+    
+    .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+    }
+    
+    .checkbox-container input:checked ~ .checkmark:after {
+        display: block;
+    }
+    
+    .checkbox-container .checkmark:after {
+        left: 0.4rem;
+        top: 0.2rem;
+        width: 0.25rem;
+        height: 0.5rem;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- En-tête avec bouton retour -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center">
+            <a href="{% url 'settings' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800">Supprimer mon compte</h1>
+        </div>
+    </div>
+    
+    <!-- Avertissement principal -->
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl warning-icon"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-lg font-medium text-red-800">Attention : Action irréversible</h3>
+                <p class="text-red-700 mt-2">
+                    La suppression de votre compte est définitive et ne peut pas être annulée. Toutes vos données personnelles, votre historique de transactions et vos informations de paiement seront supprimés de nos serveurs.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Informations sur la suppression -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Ce qui sera supprimé</h2>
+        
+        <div class="space-y-4">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="ml-2">
+                    <h3 class="font-medium text-gray-800">Informations personnelles</h3>
+                    <p class="text-gray-600 mt-1">Votre nom, adresse, numéro de téléphone et autres informations d'identification.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="ml-2">
+                    <h3 class="font-medium text-gray-800">Historique financier</h3>
+                    <p class="text-gray-600 mt-1">Toutes vos transactions, paiements et transferts effectués sur OPay.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="ml-2">
+                    <h3 class="font-medium text-gray-800">Cartes et comptes liés</h3>
+                    <p class="text-gray-600 mt-1">Toutes les cartes bancaires et comptes que vous avez ajoutés à OPay.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="ml-2">
+                    <h3 class="font-medium text-gray-800">Préférences et paramètres</h3>
+                    <p class="text-gray-600 mt-1">Tous vos paramètres personnalisés et préférences d'utilisation.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alternatives à la suppression -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Alternatives à la suppression</h2>
+        
+        <div class="space-y-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-pause-circle text-blue-500 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="font-medium text-gray-800">Désactiver temporairement</h3>
+                    <p class="text-gray-600 mt-1">Vous pouvez désactiver votre compte temporairement et le réactiver plus tard.</p>
+                    <a href="#" class="text-primary-600 hover:text-primary-700 font-medium text-sm mt-2 inline-block">
+                        Désactiver mon compte
+                    </a>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-user-shield text-green-500 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="font-medium text-gray-800">Limiter l'utilisation des données</h3>
+                    <p class="text-gray-600 mt-1">Vous pouvez modifier vos paramètres de confidentialité pour limiter l'utilisation de vos données.</p>
+                    <a href="{% url 'preferences' %}" class="text-primary-600 hover:text-primary-700 font-medium text-sm mt-2 inline-block">
+                        Gérer mes préférences
+                    </a>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-headset text-purple-500 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="font-medium text-gray-800">Contacter le support</h3>
+                    <p class="text-gray-600 mt-1">Si vous rencontrez des problèmes, notre équipe de support est là pour vous aider.</p>
+                    <a href="#" class="text-primary-600 hover:text-primary-700 font-medium text-sm mt-2 inline-block">
+                        Contacter le support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Formulaire de confirmation -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-semibold text-red-600 mb-4">Confirmation de suppression</h2>
+        
+        <form id="deleteAccountForm">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Veuillez saisir votre mot de passe pour confirmer
+                    </label>
+                    <input type="password" id="password" class="form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring focus:ring-red-500 focus:ring-opacity-50" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Raison de la suppression (optionnel)
+                    </label>
+                    <select class="form-select block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring focus:ring-red-500 focus:ring-opacity-50">
+                        <option value="">Sélectionnez une raison</option>
+                        <option value="not_using">Je n'utilise plus le service</option>
+                        <option value="privacy">Préoccupations de confidentialité</option>
+                        <option value="experience">Mauvaise expérience utilisateur</option>
+                        <option value="alternative">J'utilise un service alternatif</option>
+                        <option value="other">Autre raison</option>
+                    </select>
+                </div>
+                
+                <div class="pt-4">
+                    <label class="checkbox-container text-red-700 font-medium">
+                        Je comprends que cette action est irréversible et que toutes mes données seront supprimées définitivement.
+                        <input type="checkbox" id="confirmCheckbox" required>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                
+                <div class="flex justify-end pt-4">
+                    <a href="{% url 'settings' %}" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all mr-3">
+                        Annuler
+                    </a>
+                    <button type="submit" id="confirmDeleteBtn" class="confirm-button px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all" disabled>
+                        Supprimer définitivement mon compte
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de confirmation finale -->
+<div id="finalConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="text-center mb-4">
+            <i class="fas fa-exclamation-triangle text-red-600 text-4xl mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-900">Dernière vérification</h3>
+            <p class="text-gray-600 mt-2">
+                Êtes-vous absolument sûr de vouloir supprimer votre compte ? Cette action ne peut pas être annulée.
+            </p>
+        </div>
+        
+        <div class="flex justify-center space-x-3 mt-6">
+            <button id="cancelFinalBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300">
+                Annuler
+            </button>
+            <form action="{% url 'delete_account_confirm' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="password" id="finalPassword">
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700">
+                    Confirmer la suppression
+                </button>
+            </form>
+g            
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteAccountForm = document.getElementById('deleteAccountForm');
+        const confirmCheckbox = document.getElementById('confirmCheckbox');
+        const passwordInput = document.getElementById('password');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const finalConfirmModal = document.getElementById('finalConfirmModal');
+        const cancelFinalBtn = document.getElementById('cancelFinalBtn');
+        
+        // Fonction pour vérifier si le formulaire est valide
+        function checkFormValidity() {
+            if (confirmCheckbox.checked && passwordInput.value.length > 0) {
+                confirmDeleteBtn.disabled = false;
+            } else {
+                confirmDeleteBtn.disabled = true;
+            }
+        }
+        
+        // Écouter les changements sur la case à cocher et le champ de mot de passe
+        confirmCheckbox.addEventListener('change', checkFormValidity);
+        passwordInput.addEventListener('input', checkFormValidity);
+        
+        // Soumission du formulaire
+        deleteAccountForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Afficher le modal de confirmation finale
+            finalConfirmModal.classList.remove('hidden');
+            
+            // Ajouter une animation d'entrée
+            setTimeout(() => {
+                finalConfirmModal.querySelector('.bg-white').classList.add('animate-bounce');
+                setTimeout(() => {
+                    finalConfirmModal.querySelector('.bg-white').classList.remove('animate-bounce');
+                }, 500);
+            }, 100);
+        });
+        
+        // Fermer le modal de confirmation
+        cancelFinalBtn.addEventListener('click', function() {
+            finalConfirmModal.classList.add('hidden');
+        });
+        
+        // Fermer le modal en cliquant en dehors
+        finalConfirmModal.addEventListener('click', function(e) {
+            if (e.target === finalConfirmModal) {
+                finalConfirmModal.classList.add('hidden');
+            }
+        });
+        
+        // Animation pour la case à cocher
+        confirmCheckbox.addEventListener('change', function() {
+            const checkmark = this.nextElementSibling;
+            if (this.checked) {
+                checkmark.classList.add('animate-pulse');
+                setTimeout(() => {
+                    checkmark.classList.remove('animate-pulse');
+                }, 500);
+            }
+        });
+        
+        // Effet visuel pour le bouton de suppression
+        confirmDeleteBtn.addEventListener('mouseenter', function() {
+            if (!this.disabled) {
+                this.classList.add('scale-105');
+                setTimeout(() => {
+                    this.classList.remove('scale-105');
+                }, 200);
+            }
+        });
+        
+        // Ajouter un effet de secousse au bouton de suppression lorsqu'il est activé
+        confirmDeleteBtn.addEventListener('click', function() {
+            if (!this.disabled) {
+                this.classList.add('animate-pulse');
+            }
+        });
+    });
+</script>
+{% endblock %}

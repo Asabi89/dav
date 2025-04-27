@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+
+{% block title %}Détails du paiement | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation de succès */
+    @keyframes checkmark {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .success-icon {
+        animation: checkmark 0.8s ease-in-out forwards;
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 1rem;
+    }
+    
+    /* Styles pour la carte de transaction */
+    .transaction-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 2px solid rgba(209, 213, 219, 0.5);
+    }
+    
+    .transaction-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 4px 6px rgba(0, 0, 0, 0.05);
+        transform: translateY(-5px);
+        border-color: #0d9488;
+    }
+    
+    /* Styles pour les boutons d'action */
+    .action-button {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid transparent;
+    }
+    
+    .action-button:hover {
+        transform: translateY(-2px);
+    }
+    
+    .action-button::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+    }
+    
+    .action-button:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+        0% {
+            transform: scale(0, 0);
+            opacity: 0.5;
+        }
+        100% {
+            transform: scale(20, 20);
+            opacity: 0;
+        }
+    }
+    
+    /* Badge de statut */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+    
+    /* Styles pour le reçu */
+    .receipt {
+        position: relative;
+        background-color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 2px solid rgba(209, 213, 219, 0.5);
+    }
+    
+    .receipt::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background-image: linear-gradient(45deg, white 25%, transparent 25%),
+                          linear-gradient(-45deg, white 25%, transparent 25%);
+        background-size: 20px 20px;
+        background-position: 0 -10px;
+    }
+    
+    .receipt::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background-image: linear-gradient(45deg, transparent 25%, white 25%),
+                          linear-gradient(-45deg, transparent 25%, white 25%);
+        background-size: 20px 20px;
+        background-position: 0 10px;
+    }
+    
+    /* Styles pour les détails de transaction */
+    .transaction-detail {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .transaction-detail:last-child {
+        border-bottom: none;
+    }
+    
+    /* Animation pour les éléments */
+    .animate-fade-in {
+        opacity: 0;
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .animate-delay-1 {
+        animation-delay: 0.1s;
+    }
+    
+    .animate-delay-2 {
+        animation-delay: 0.2s;
+    }
+    
+    .animate-delay-3 {
+        animation-delay: 0.3s;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Styles pour le logo du fournisseur */
+    .provider-logo {
+        width: 4rem;
+        height: 4rem;
+        border-radius: 1rem;
+        background-color: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 2px solid #e5e7eb;
+    }
+    
+    .provider-logo img {
+        max-width: 80%;
+        max-height: 80%;
+        object-fit: contain;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- En-tête avec bouton retour -->
+    <div class="flex items-center mb-6 animate-fade-in">
+        <a href="{% url 'transaction_history' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-800">Détails du paiement</h1>
+    </div>
+    
+    <!-- Carte de reçu avec effet de brillance -->
+    <div class="receipt mb-8 animate-fade-in animate-delay-1">
+        <div class="card-shine"></div>
+        
+        <!-- Logo et date -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="font-bold text-xl text-primary-600">OPay</div>
+            <div class="text-gray-500 text-sm">{{ payment.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+        
+        <!-- Montant principal -->
+        <div class="text-center my-8">
+            <p class="text-gray-600 mb-2">Montant payé</p>
+            <p class="text-4xl font-bold text-gray-800">{{ payment.amount }} FCFA</p>
+        </div>
+        
+        <!-- Détails de la transaction -->
+        <div class="space-y-1 mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">Détails de la transaction</h2>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Fournisseur</span>
+                <div class="flex items-center">
+                    {% if payment.provider.logo %}
+                    <img src="{{ payment.provider.logo.url }}" alt="{{ payment.provider.name }}" class="w-5 h-5 mr-2 object-contain">
+                    {% endif %}
+                    <span class="font-medium text-gray-800">{{ payment.provider.name }}</span>
+                </div>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">{{ payment.provider.account_number_label }}</span>
+                <span class="font-medium text-gray-800">{{ payment.account_number }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Date</span>
+                <span class="font-medium text-gray-800">{{ payment.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Référence</span>
+                <span class="font-medium text-gray-800">{{ payment.transaction.reference }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Statut</span>
+                <span class="status-badge 
+                    {% if payment.status == 'completed' %}bg-green-100 text-green-800 border-green-200
+                    {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800 border-yellow-200
+                    {% elif payment.status == 'failed' %}bg-red-100 text-red-800 border-red-200
+                    {% else %}bg-gray-100 text-gray-800 border-gray-200{% endif %}">
+                    <i class="
+                        {% if payment.status == 'completed' %}fas fa-check-circle mr-1
+                        {% elif payment.status == 'pending' %}fas fa-clock mr-1
+                        {% elif payment.status == 'failed' %}fas fa-times-circle mr-1
+                        {% else %}fas fa-question-circle mr-1{% endif %}"></i>
+                    {{ payment.get_status_display }}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Message de confirmation -->
+        <div class="bg-{% if payment.status == 'completed' %}green{% elif payment.status == 'pending' %}yellow{% elif payment.status == 'failed' %}red{% else %}blue{% endif %}-50 border-l-4 border-{% if payment.status == 'completed' %}green{% elif payment.status == 'pending' %}yellow{% elif payment.status == 'failed' %}red{% else %}blue{% endif %}-500 p-4 rounded-md mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-{% if payment.status == 'completed' %}check-circle text-green{% elif payment.status == 'pending' %}clock text-yellow{% elif payment.status == 'failed' %}exclamation-circle text-red{% else %}info-circle text-blue{% endif %}-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-{% if payment.status == 'completed' %}green{% elif payment.status == 'pending' %}yellow{% elif payment.status == 'failed' %}red{% else %}blue{% endif %}-700">
+                        {% if payment.status == 'completed' %}
+                            Ce paiement a été traité avec succès. Un reçu a été envoyé à votre adresse email.
+                        {% elif payment.status == 'pending' %}
+                            Ce paiement est en cours de traitement. Vous serez notifié une fois qu'il sera terminé.
+                        {% elif payment.status == 'failed' %}
+                            Ce paiement a échoué. Veuillez réessayer ou contacter notre service client.
+                        {% else %}
+                            Le statut de ce paiement est actuellement inconnu.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Informations sur le fournisseur -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-8 animate-fade-in animate-delay-2 transaction-card">
+        <h2 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-building text-primary-600 mr-2"></i> Informations sur le fournisseur
+        </h2>
+        
+        <div class="flex items-center">
+            <div class="provider-logo mr-4">
+                {% if payment.provider.logo %}
+                <img src="{{ payment.provider.logo.url }}" alt="{{ payment.provider.name }}">
+                {% else %}
+                <i class="fas fa-building text-gray-400 text-2xl"></i>
+                {% endif %}
+            </div>
+            
+            <div>
+                <h3 class="font-semibold text-gray-800">{{ payment.provider.name }}</h3>
+                <p class="text-sm text-gray-600">{{ payment.provider.category.name }}</p>
+                
+                {% if payment.provider.description %}
+                <p class="text-sm text-gray-600 mt-2">{{ payment.provider.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if payment.provider.website or payment.provider.contact_phone %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            {% if payment.provider.website %}
+            <div class="flex items-center mb-2">
+                <i class="fas fa-globe text-gray-400 w-5 mr-2"></i>
+                <a href="{{ payment.provider.website }}" target="_blank" class="text-primary-600 hover:underline">{{ payment.provider.website }}</a>
+            </div>
+            {% endif %}
+            
+            {% if payment.provider.contact_phone %}
+            <div class="flex items-center">
+                <i class="fas fa-phone text-gray-400 w-5 mr-2"></i>
+                <a href="tel:{{ payment.provider.contact_phone }}" class="text-primary-600 hover:underline">{{ payment.provider.contact_phone }}</a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Actions -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 animate-fade-in animate-delay-3">
+        <a href="{% url 'bill_categories' %}" class="action-button px-4 py-3 bg-primary-600 text-white hover:bg-primary-700 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 border border-primary-700 flex items-center justify-center transition-all">
+            <i class="fas fa-file-invoice mr-2"></i> Nouveau paiement
+        </a>
+        
+        <a href="{% url 'dashboard' %}" class="action-button px-4 py-3 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 border border-gray-300 flex items-center justify-center transition-all">
+            <i class="fas fa-home mr-2"></i> Retour à l'accueil
+        </a>
+    </div>
+    
+    <!-- Options supplémentaires -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in animate-delay-4">
+        <a href="{% url 'transaction_history' %}" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+            <i class="fas fa-history text-primary-600 text-xl mb-2"></i>
+            <span class="text-gray-800 font-medium">Historique</span>
+        </a>
+        
+        <button id="downloadReceiptBtn" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+            <i class="fas fa-download text-primary-600 text-xl mb-2"></i>
+            <span class="text-gray-800 font-medium">Télécharger reçu</span>
+        </button>
+        
+        <button id="reportIssueBtn" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+            <i class="fas fa-flag text-primary-600 text-xl mb-2"></i>
+            <span class="text-gray-800 font-medium">Signaler un problème</span>
+        </button>
+    </div>
+    
+    <!-- Modal de signalement de problème -->
+    <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Signaler un problème</h3>
+                <button id="closeReportBtn" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Type de problème
+                    </label>
+                    <select class="form-select w-full">
+                        <option>Montant incorrect</option>
+                        <option>Paiement non reçu par le fournisseur</option>
+                        <option>Double paiement</option>
+                        <option>Autre problème</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Description du problème
+                    </label>
+                    <textarea class="form-textarea w-full" rows="4" placeholder="Veuillez décrire le problème en détail..."></textarea>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="button" id="cancelReportBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 mr-2">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700">
+                        Envoyer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments DOM
+        const downloadReceiptBtn = document.getElementById('downloadReceiptBtn');
+        const reportIssueBtn = document.getElementById('reportIssueBtn');
+        const reportModal = document.getElementById('reportModal');
+        const closeReportBtn = document.getElementById('closeReportBtn');
+        const cancelReportBtn = document.getElementById('cancelReportBtn');
+        
+        // Effet de brillance pour le reçu
+        const receipt = document.querySelector('.receipt');
+        const cardShine = document.querySelector('.card-shine');
+        
+        if (receipt && cardShine) {
+            receipt.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            receipt.addEventListener('mouseleave', function() {
+                cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+        
+        // Bouton de téléchargement du reçu
+        if (downloadReceiptBtn) {
+            downloadReceiptBtn.addEventListener('click', function() {
+                // Simuler un téléchargement
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin text-primary-600 text-xl mb-2"></i><span class="text-gray-800 font-medium">Préparation...</span>';
+                
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-check text-primary-600 text-xl mb-2"></i><span class="text-gray-800 font-medium">Téléchargé</span>';
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                    }, 2000);
+                    
+                    // Afficher une alerte (à remplacer par un vrai téléchargement)
+                    alert('Le téléchargement du reçu sera disponible prochainement.');
+                }, 1500);
+            });
+        }
+        
+        // Gestion du modal de signalement
+        if (reportIssueBtn && reportModal && closeReportBtn && cancelReportBtn) {
+            reportIssueBtn.addEventListener('click', function() {
+                reportModal.classList.remove('hidden');
+            });
+            
+            closeReportBtn.addEventListener('click', function() {
+                reportModal.classList.add('hidden');
+            });
+            
+            cancelReportBtn.addEventListener('click', function() {
+                reportModal.classList.add('hidden');
+            });
+            
+            // Fermer le modal en cliquant en dehors
+            reportModal.addEventListener('click', function(e) {
+                if (e.target === reportModal) {
+                    reportModal.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Animation pour le badge de statut
+        const statusBadge = document.querySelector('.status-badge');
+        if (statusBadge) {
+            setTimeout(() => {
+                statusBadge.classList.add('animate-pulse');
+                setTimeout(() => {
+                    statusBadge.classList.remove('animate-pulse');
+                }, 2000);
+            }, 1000);
+        }
+        
+        // Amélioration de l'expérience mobile
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.action-button, button').forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                button.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        }
+        
+        // Ajouter des animations au défilement
+        const animateOnScroll = function() {
+            const elements = document.querySelectorAll('.animate-fade-in');
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementBottom = element.getBoundingClientRect().bottom;
+                
+                if (elementTop < window.innerHeight && elementBottom > 0) {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        };
+        
+        // Exécuter une fois au chargement
+        animateOnScroll();
+        
+        // Ajouter l'écouteur d'événement pour le défilement
+        window.addEventListener('scroll', animateOnScroll);
+    });
+</script>
+{% endblock %}

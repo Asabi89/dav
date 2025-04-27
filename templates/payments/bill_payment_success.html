@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+
+{% block title %}Paiement réussi | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation de succès */
+    @keyframes checkmark {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .success-icon {
+        animation: checkmark 0.8s ease-in-out forwards;
+    }
+    
+    /* Animation de confetti */
+    @keyframes confetti-fall {
+        0% {
+            transform: translateY(-100px) rotate(0deg);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+        }
+    }
+    
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background-color: var(--confetti-color);
+        opacity: 0;
+        animation: confetti-fall 4s ease-in-out forwards;
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 1rem;
+    }
+    
+    /* Styles pour la carte de transaction */
+    .transaction-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .transaction-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 4px 6px rgba(0, 0, 0, 0.05);
+        transform: translateY(-5px);
+    }
+    
+    /* Styles pour les boutons d'action */
+    .action-button {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .action-button::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+    }
+    
+    .action-button:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+        0% {
+            transform: scale(0, 0);
+            opacity: 0.5;
+        }
+        100% {
+            transform: scale(20, 20);
+            opacity: 0;
+        }
+    }
+    
+    /* Badge de statut */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.025em;
+    }
+    
+    /* Styles pour le reçu */
+    .receipt {
+        position: relative;
+        background-color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .receipt::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background-image: linear-gradient(45deg, white 25%, transparent 25%),
+                          linear-gradient(-45deg, white 25%, transparent 25%);
+        background-size: 20px 20px;
+        background-position: 0 -10px;
+    }
+    
+    .receipt::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background-image: linear-gradient(45deg, transparent 25%, white 25%),
+                          linear-gradient(-45deg, transparent 25%, white 25%);
+        background-size: 20px 20px;
+        background-position: 0 10px;
+    }
+    
+    /* Styles pour les détails de transaction */
+    .transaction-detail {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .transaction-detail:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Confetti container (ajouté par JS) -->
+    <div id="confetti-container"></div>
+    
+    <!-- En-tête avec animation -->
+    <div class="text-center mb-8">
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+            <i class="fas fa-check-circle text-green-500 text-4xl success-icon"></i>
+            <div class="absolute inset-0 rounded-full bg-green-200 opacity-50 animate-ping"></div>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Paiement réussi !</h1>
+        <p class="text-gray-600 text-lg">Votre paiement a été traité avec succès</p>
+    </div>
+    
+    <!-- Carte de reçu avec effet de brillance -->
+    <div class="receipt mb-8 border-2 border-gray-200">
+        <div class="card-shine"></div>
+        
+        <!-- Logo et date -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="font-bold text-xl text-primary-600">OPay</div>
+            <div class="text-gray-500 text-sm">{{ payment.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+        
+        <!-- Montant principal -->
+        <div class="text-center my-8">
+            <p class="text-gray-600 mb-2">Montant payé</p>
+            <p class="text-4xl font-bold text-gray-800">{{ payment.amount }} FCFA</p>
+        </div>
+        
+        <!-- Détails de la transaction -->
+        <div class="space-y-1 mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">Détails de la transaction</h2>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Fournisseur</span>
+                <span class="font-medium text-gray-800">{{ payment.provider.name }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">{{ payment.provider.account_number_label }}</span>
+                <span class="font-medium text-gray-800">{{ payment.account_number }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Date</span>
+                <span class="font-medium text-gray-800">{{ payment.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Référence</span>
+                <span class="font-medium text-gray-800">{{ payment.transaction.reference }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Statut</span>
+                <span class="status-badge bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    {{ payment.get_status_display }}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Message de confirmation -->
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-md mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-green-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-green-700">
+                        Une confirmation a été envoyée à votre adresse email. Vous pouvez également retrouver ce reçu dans votre historique de transactions.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Actions -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <a href="{% url 'bill_categories' %}" class="action-button px-4 py-3 bg-primary-600 text-white hover:bg-primary-700 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 border border-primary-700 flex items-center justify-center transition-all">
+            <i class="fas fa-file-invoice mr-2"></i> Nouveau paiement
+        </a>
+        
+        <a href="{% url 'dashboard' %}" class="action-button px-4 py-3 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 border border-gray-300 flex items-center justify-center transition-all">
+            <i class="fas fa-home mr-2"></i> Retour à l'accueil
+        </a>
+    </div>
+    
+    <!-- Options supplémentaires -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <a href="{% url 'transaction_history' %}" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+            <i class="fas fa-history text-primary-600 text-xl mb-2"></i>
+            <span class="text-gray-800 font-medium">Historique</span>
+        </a>
+        
+        <button id="downloadReceiptBtn" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+            <i class="fas fa-download text-primary-600 text-xl mb-2"></i>
+            <span class="text-gray-800 font-medium">Télécharger reçu</span>
+        </button>
+        
+        <button id="shareReceiptBtn" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+            <i class="fas fa-share-alt text-primary-600 text-xl mb-2"></i>
+            <span class="text-gray-800 font-medium">Partager</span>
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animation de confetti
+        createConfetti();
+        
+        // Effet de brillance pour le reçu
+        const receipt = document.querySelector('.receipt');
+        const cardShine = document.querySelector('.card-shine');
+        
+        if (receipt && cardShine) {
+            receipt.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            receipt.addEventListener('mouseleave', function() {
+                cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+        
+        // Bouton de téléchargement du reçu
+        const downloadReceiptBtn = document.getElementById('downloadReceiptBtn');
+        if (downloadReceiptBtn) {
+            downloadReceiptBtn.addEventListener('click', function() {
+                alert('Le téléchargement du reçu sera disponible prochainement.');
+            });
+        }
+        
+        // Bouton de partage
+        const shareReceiptBtn = document.getElementById('shareReceiptBtn');
+        if (shareReceiptBtn) {
+            shareReceiptBtn.addEventListener('click', function() {
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Reçu de paiement OPay',
+                        text: 'Voici mon reçu de paiement OPay',
+                        url: window.location.href,
+                    })
+                    .catch((error) => console.log('Erreur de partage', error));
+                } else {
+                    alert('Le partage n\'est pas pris en charge par votre navigateur.');
+                }
+            });
+        }
+        
+        // Fonction pour créer l'animation de confetti
+        function createConfetti() {
+            const confettiContainer = document.getElementById('confetti-container');
+            const colors = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4'];
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.setProperty('--confetti-color', colors[Math.floor(Math.random() * colors.length)]);
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+                
+                // Formes variées pour les confettis
+                const shape = Math.floor(Math.random() * 3);
+                if (shape === 0) {
+                    // Carré
+                    confetti.style.borderRadius = '0';
+                } else if (shape === 1) {
+                    // Cercle
+                    confetti.style.borderRadius = '50%';
+                } else {
+                    // Triangle (en utilisant un pseudo-élément)
+                    confetti.style.width = '0';
+                    confetti.style.height = '0';
+                    confetti.style.borderLeft = '5px solid transparent';
+                    confetti.style.borderRight = '5px solid transparent';
+                    confetti.style.borderBottom = '10px solid var(--confetti-color)';
+                    confetti.style.background = 'transparent';
+                }
+                
+                confettiContainer.appendChild(confetti);
+                
+                // Supprimer les confettis après l'animation
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+        
+        // Ajouter une animation de pulsation au badge de statut
+        const statusBadge = document.querySelector('.status-badge');
+        if (statusBadge) {
+            setTimeout(() => {
+                statusBadge.classList.add('animate-pulse');
+                setTimeout(() => {
+                    statusBadge.classList.remove('animate-pulse');
+                }, 2000);
+            }, 1000);
+        }
+        
+        // Simuler un chargement pour les boutons d'action
+        document.querySelectorAll('.action-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const originalContent = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement...';
+                
+                // Restaurer le contenu original après un court délai
+                setTimeout(() => {
+                    this.innerHTML = originalContent;
+                }, 500);
+            });
+        });
+        
+        // Amélioration de l'expérience mobile
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.action-button').forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                button.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

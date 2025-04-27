@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+
+{% block title %}Tableau de bord | OPay{% endblock %}
+
+{% block extra_head %}
+<!-- Ajout de styles prioritaires pour forcer la suppression de l'espace -->
+<style>
+body {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.dashboard-page.container.dashboard-container {
+    padding-top: 70px !important;
+    margin-top: 20px !important;
+}
+
+/* Cibler directement la première carte */
+.dashboard-page .dashboard-card:first-child {
+    margin-top: 20px !important;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding-top: 56px !important; /* Hauteur de la navbar mobile */
+    }
+}
+
+.app-container {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+.page-container {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+</style>
+{% endblock %}
+
+
+
+
+
+{% block extra_css %}
+<style>
+/* Styles spécifiques pour la page dashboard */
+.dashboard-page {
+    margin-top: 0 !important;
+}
+
+@media (max-width: 1023px) {
+    .dashboard-container {
+        padding-top: 70px !important; /* Ajustez cette valeur selon vos besoins */
+    }
+    .dashboard-card.bg-gradient-to-r {
+        margin-top: 10px; /* Ajustez cette valeur selon vos besoins */
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-page {
+        padding-top: 0 !important;
+    }
+    /* Forcer la suppression de tout espace en haut sur mobile */
+    .navbar + .app-container .page-container .dashboard-page {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .dashboard-page {
+        padding-top: 1rem !important;
+    }
+}
+
+/* Ajoutez ces styles dans le bloc extra_css */
+@media (max-width: 768px) {
+    /* Ajustements spécifiques pour mobile */
+    .container {
+        padding-top: 0 !important;
+    }
+    /* Réduire l'espace entre les cartes sur mobile */
+    .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+        --tw-space-y-reverse: 0;
+        margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+        margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+    }
+}
+
+/* Ajustements pour desktop */
+@media (min-width: 1024px) {
+    .container {
+        padding-top: 1rem;
+    }
+}
+
+/* Styles spécifiques pour le dashboard */
+.dashboard-card {
+    transition: all 0.2s ease-in-out;
+}
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Améliorations responsive */
+@media (max-width: 640px) {
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+    .action-buttons {
+        flex-direction: column;
+    }
+    .action-buttons a {
+        margin-bottom: 0.5rem;
+        width: 100%;
+    }
+}
+
+/* Animation pour les icônes d'actions rapides */
+.quick-action:hover .action-icon {
+    transform: scale(1.1);
+}
+.action-icon {
+    transition: transform 0.2s ease;
+}
+
+/* Amélioration de l'affichage des transactions */
+.transaction-item {
+    transition: background-color 0.2s ease;
+}
+.transaction-item:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Ajout d'un style inline pour forcer la suppression de l'espace -->
+<style>
+.app-container, .page-container {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+@media (max-width: 768px) {
+    .dashboard-page {
+        padding-bottom: 5rem !important;
+    }
+    
+    .dashboard-page.has-app-banner {
+        padding-bottom: 9rem !important;
+    }
+    
+    /* Assurez-vous que la dernière carte a une marge suffisante */
+    .dashboard-card:last-child {
+        margin-bottom: 1.5rem;
+    }
+}
+</style>
+
+<div class="dashboard-page container mx-auto px-4 pt-0 pb-6 md:pb-6 space-y-6 max-w-5xl {% if show_app_banner %}has-app-banner{% endif %}">
+    <!-- Reste du code inchangé -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-xl {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Colonne principale - Maintenant en pleine largeur -->
+    <div class="space-y-6">
+        <!-- Solde du portefeuille -->
+        <div class="dashboard-card card bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl overflow-hidden shadow-lg ">
+            <div class="p-6">
+                <div class="flex flex-col mb-6">
+                    <p class="text-primary-100 text-sm">Solde disponible</p>
+                    <p class="text-3xl font-bold">{{ wallet.balance }} FCFA</p>
+                </div>
+                <div class="flex flex-wrap sm:flex-nowrap gap-3 action-buttons">
+                    <a href="{% url 'deposit' %}" class="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 py-3 px-4 rounded-lg text-center backdrop-blur-sm transition-all flex items-center justify-center">
+                        <i class="fas fa-plus mr-2"></i> Dépôt
+                    </a>
+                    <a href="{% url 'withdraw' %}" class="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 py-3 px-4 rounded-lg text-center backdrop-blur-sm transition-all flex items-center justify-center">
+                        <i class="fas fa-minus mr-2"></i> Retrait
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions rapides -->
+        <div class="dashboard-card card rounded-xl shadow-md">
+            <h2 class="text-lg font-semibold mb-4 px-4 pt-4">Actions rapides</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
+                <a href="{% url 'transfer' %}" class="quick-action flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 transition-all">
+                    <div class="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center mb-3 action-icon">
+                        <i class="fas fa-exchange-alt text-primary-600 text-xl"></i>
+                    </div>
+                    <p class="text-sm text-center text-gray-800 font-medium">Transfert</p>
+                </a>
+                <a href="{% url 'bill_categories' %}" class="quick-action flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 transition-all">
+                    <div class="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center mb-3 action-icon">
+                        <i class="fas fa-file-invoice text-primary-600 text-xl"></i>
+                    </div>
+                    <p class="text-sm text-center text-gray-800 font-medium">Factures</p>
+                </a>
+                <a href="{% url 'mobile_operators' %}" class="quick-action flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 transition-all">
+                    <div class="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center mb-3 action-icon">
+                        <i class="fas fa-mobile-alt text-primary-600 text-xl"></i>
+                    </div>
+                    <p class="text-sm text-center text-gray-800 font-medium">Recharges</p>
+                </a>
+                <a href="{% url 'transaction_history' %}" class="quick-action flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 transition-all">
+                    <div class="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center mb-3 action-icon">
+                        <i class="fas fa-history text-primary-600 text-xl"></i>
+                    </div>
+                    <p class="text-sm text-center text-gray-800 font-medium">Historique</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Transactions récentes -->
+        <div class="dashboard-card card rounded-xl shadow-md">
+            <div class="p-4">
+                <h2 class="text-lg font-semibold mb-4 flex justify-between items-center">
+                    <span>Transactions récentes</span>
+                    <a href="{% url 'transaction_history' %}" class="text-primary-600 text-sm hover:underline">
+                        Voir tout <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                    </a>
+                </h2>
+                
+                {% if recent_transactions %}
+                <div class="space-y-4">
+                    {% for transaction in recent_transactions %}
+                    <div class="transaction-item flex items-center justify-between py-3 border-b border-gray-100 last:border-0 rounded-lg px-2">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4
+                                {% if transaction.transaction_type in 'deposit,transfer_in' %}
+                                    bg-green-100
+                                {% elif transaction.transaction_type == 'withdraw' %}
+                                    bg-red-100
+                                {% elif transaction.transaction_type == 'bill_payment' %}
+                                    bg-yellow-100
+                                {% elif transaction.transaction_type == 'mobile_recharge' %}
+                                    bg-purple-100
+                                {% else %}
+                                    bg-blue-100
+                                {% endif %}">
+                                {% if transaction.transaction_type == 'deposit' %}
+                                    <i class="fas fa-plus text-green-600 text-lg"></i>
+                                {% elif transaction.transaction_type == 'withdraw' %}
+                                    <i class="fas fa-minus text-red-600 text-lg"></i>
+                                {% elif transaction.transaction_type == 'transfer_in' %}
+                                    <i class="fas fa-arrow-down text-green-600 text-lg"></i>
+                                {% elif transaction.transaction_type == 'transfer_out' %}
+                                    <i class="fas fa-arrow-up text-blue-600 text-lg"></i>
+                                {% elif transaction.transaction_type == 'bill_payment' %}
+                                    <i class="fas fa-file-invoice text-yellow-600 text-lg"></i>
+                                {% elif transaction.transaction_type == 'mobile_recharge' %}
+                                    <i class="fas fa-mobile-alt text-purple-600 text-lg"></i>
+                                {% else %}
+                                    <i class="fas fa-exchange-alt text-blue-600 text-lg"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">{{ transaction.description }}</p>
+                                <p class="text-xs text-gray-500">{{ transaction.timestamp|date:"d/m/Y H:i" }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium 
+                                {% if transaction.transaction_type in 'deposit,transfer_in' %}
+                                    text-green-600
+                                {% else %}
+                                    text-red-600
+                                {% endif %}">
+                                {% if transaction.transaction_type in 'deposit,transfer_in' %}+{% else %}-{% endif %}{{ transaction.amount }} €
+                            </p>
+                            <span class="text-xs px-2 py-1 inline-flex rounded-full
+                                {% if transaction.status == 'completed' %}
+                                    bg-green-100 text-green-800
+                                {% elif transaction.status == 'pending' %}
+                                    bg-yellow-100 text-yellow-800
+                                {% elif transaction.status == 'failed' %}
+                                    bg-red-100 text-red-800
+                                {% else %}
+                                    bg-gray-100 text-gray-800
+                                {% endif %}">
+                                {{ transaction.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-10 bg-gray-50 rounded-xl">
+                    <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exchange-alt text-gray-400 text-xl"></i>
+                    </div>
+                    <p class="text-gray-500">Aucune transaction récente</p>
+                    <a href="{% url 'deposit' %}" class="mt-4 inline-block text-primary-600 hover:underline">
+                        Effectuer votre premier dépôt
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile App Banner (visible only on mobile) -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg md:hidden z-10">
+    <div class="flex items-center justify-between">
+        <div>
+            <h4 class="font-semibold text-gray-800">Application OPay</h4>
+            <p class="text-xs text-gray-600">Une meilleure expérience sur mobile</p>
+        </div>
+        <a href="#" class="btn btn-sm btn-primary">
+            Télécharger
+        </a>
+    </div>
+</div>
+
+
+{% block extra_js %}
+<script>
+// Animations pour les cartes du dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    // Animation d'entrée pour les cartes
+    const cards = document.querySelectorAll('.dashboard-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 100 * index);
+    });
+
+    // Amélioration de l'expérience mobile
+    if (window.innerWidth < 768) {
+        // Ajuster le padding pour les petits écrans
+        const container = document.querySelector('.container');
+        if (container) {
+            container.classList.remove('px-4');
+            container.classList.add('px-2');
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

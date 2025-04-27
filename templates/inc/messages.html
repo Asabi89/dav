@@ -1,0 +1,25 @@
+{% if messages %}
+<div class="mb-4">
+    {% for message in messages %}
+        <div class="p-3 mb-3 rounded-lg {{ message.tags }} alert-dismissible">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    {% if message.tags == 'alert-success' %}
+                        <i class="fas fa-check-circle mr-2 text-green-600"></i>
+                    {% elif message.tags == 'alert-info' %}
+                        <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                    {% elif message.tags == 'alert-warning' %}
+                        <i class="fas fa-exclamation-triangle mr-2 text-yellow-600"></i>
+                    {% elif message.tags == 'alert-danger' %}
+                        <i class="fas fa-exclamation-circle mr-2 text-red-600"></i>
+                    {% endif %}
+                    <p class="text-sm">{{ message }}</p>
+                </div>
+                <button type="button" class="close p-1">
+                    <i class="fas fa-times text-gray-500 hover:text-gray-700"></i>
+                </button>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
