@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.2, user-scalable=no">
+
+    <title>{% block title %}OPay - Votre portefeuille numérique{% endblock %}</title>
+    {% load static %}
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+     <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#0d9488">
+    <link rel="apple-touch-icon" href="{% static 'images/icons/icon-192x192.png' %}">
+    
+    <!-- Pour iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="OPay">
+    
+    <!-- Pour Microsoft -->
+    <meta name="msapplication-TileImage" content="{% static 'images/icons/icon-144x144.png' %}">
+    <meta name="msapplication-TileColor" content="#0d9488">
+    
+    <!-- Styles communs -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    
+    <!-- Configuration Tailwind personnalisée -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    
+     
+
+    <!-- Styles personnalisés -->
+    <style>
+        /* Empêcher le zoom sur les champs de formulaire sur iOS */
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="number"],
+        input[type="tel"],
+        select,
+        textarea {
+    font-size: 16px; /* Taille minimale pour éviter le zoom automatique sur iOS */
+         }
+
+     /* Désactiver les événements de pincement pour le zoom */
+     body {
+        touch-action: manipulation;
+    }
+
+
+            /* Application des polices à tout le site */
+        body {
+            font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        }
+        
+        h1, h2, h3, h4, h5, h6, .heading {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            letter-spacing: -0.025em;
+        }
+        
+        /* Ajustements spécifiques pour les interfaces financières */
+        .currency, .amount, .account-number, .card-number {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+        
+        /* Amélioration de la lisibilité des petits textes */
+        .text-xs, .text-sm {
+            letter-spacing: 0.01em;
+        }
+        
+        /* Surcharge des classes Tailwind pour la typographie */
+        .font-sans, .font-body {
+            font-family: 'DM Sans', system-ui, -apple-system, sans-serif !important;
+        }
+        
+        .font-heading, .font-title {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        }
+    
+
+
+        .form-input {
+            @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+        }
+        
+        .form-select {
+            @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+        }
+        
+        .form-checkbox {
+            @apply w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500;
+        }
+        
+        .btn {
+            @apply px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2;
+        }
+        
+        .btn-primary {
+            @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+        }
+        
+        .btn-secondary {
+            @apply bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500;
+        }
+        
+        .btn-danger {
+            @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+        }
+        
+        /* Styles pour l'app mobile */
+        body {
+            @apply bg-gray-50;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .app-container {
+            @apply lg:ml-16 pb-16 lg:pb-0 min-h-screen;
+            padding-top: 0 !important; /* Supprime complètement le padding-top */
+        }
+        
+        .page-container {
+            @apply px-4 max-w-4xl mx-auto;
+            padding-top: 0 !important; /* Supprime complètement le padding-top */
+            padding-bottom: 0 !important; /* Supprime le padding-bottom */
+        }
+        
+        .card {
+            @apply bg-white rounded-xl shadow-sm p-4 mb-4;
+        }
+        
+        .alert-success {
+            @apply bg-green-50 text-green-800 border-l-4 border-green-500;
+        }
+        
+        .alert-info {
+            @apply bg-blue-50 text-blue-800 border-l-4 border-blue-500;
+        }
+        
+        .alert-warning {
+            @apply bg-yellow-50 text-yellow-800 border-l-4 border-yellow-500;
+        }
+        
+        .alert-danger {
+            @apply bg-red-50 text-red-800 border-l-4 border-red-500;
+        }
+
+        /* Ajustements pour la navbar et le contenu */
+        @media (max-width: 768px) {
+            .navbar-mobile {
+                height: auto;
+                min-height: 60px; /* Hauteur fixe pour la navbar mobile */
+            }
+            
+            /* Ajustement pour le contenu sur mobile */
+            .dashboard-container {
+                padding-top: 0.5rem !important;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            /* Ajustement pour le contenu sur desktop */
+            .dashboard-container {
+                padding-top: 1rem !important;
+            }
+        }
+        
+        /* Classe spécifique pour le dashboard */
+        .dashboard-container {
+            margin-top: 0 !important;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <div id="offlineIndicator" class="fixed top-0 left-0 right-0 bg-yellow-500 text-white text-center py-2 z-50" style="display: none;">
+        Vous êtes actuellement hors ligne. Certaines fonctionnalités peuvent être limitées.
+    </div>
+    {% if user.is_authenticated and user.is_verified and user.pin_code %}
+        {% include 'inc/navbar.html' %}
+    {% endif %}
+    
+    <div class="app-container">
+        <div class="page-container">
+            {% include 'inc/messages.html' %}
+            
+            {% block content %}{% endblock %}
+        </div>
+        
+        
+
+       
+    </div>
+    
+    <!-- jQuery pour les interactions AJAX -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Scripts personnalisés -->
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Empêcher uniquement le zoom par pincement, pas le défilement
+            document.addEventListener('touchmove', function(event) {
+                // Ne bloquer que les gestes avec plusieurs doigts (pincement)
+                if (event.touches.length > 1) {
+                    event.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Permettre le double-tap sur les champs de formulaire
+            document.addEventListener('touchend', function(event) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    // Ne bloquer le double-tap que s'il ne s'agit pas d'un champ de formulaire
+                    if (!event.target.matches('input, textarea, select, button, a')) {
+                        event.preventDefault();
+                    }
+                }
+                lastTouchEnd = now;
+            }, false);
+        });
+        
+        
+        // Fermer les messages d'alerte
+        $(document).ready(function() {
+            $('.alert-dismissible .close').on('click', function() {
+                $(this).closest('.alert-dismissible').fadeOut();
+            });
+            
+            // Fermer automatiquement les messages après 5 secondes
+            setTimeout(function() {
+                $('.alert-dismissible').fadeOut();
+            }, 5000);
+        });
+    </script>
+
+    <script>
+        // Enregistrement du service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(function(registration) {
+                        console.log('Service Worker enregistré avec succès:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Échec de l\'enregistrement du Service Worker:', error);
+                    });
+            });
+        }
+        
+        // Afficher une bannière d'installation personnalisée
+        let deferredPrompt;
+        const installBanner = document.createElement('div');
+        installBanner.style.display = 'none';
+        installBanner.className = 'install-banner fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50';
+        installBanner.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="font-semibold text-gray-800">Application OPay</h4>
+                    <p class="text-xs text-gray-600">Installez notre application pour une meilleure expérience</p>
+                </div>
+                <button id="installApp" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700">
+                    Installer
+                </button>
+            </div>
+        `;
+        document.body.appendChild(installBanner);
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Empêcher Chrome d'afficher automatiquement la bannière d'installation
+            e.preventDefault();
+            // Stocker l'événement pour l'utiliser plus tard
+            deferredPrompt = e;
+            // Afficher notre bannière personnalisée
+            installBanner.style.display = 'block';
+        });
+        
+        document.getElementById('installApp').addEventListener('click', (e) => {
+            // Masquer notre bannière
+            installBanner.style.display = 'none';
+            // Afficher la bannière d'installation native
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                // Attendre que l'utilisateur réponde
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Utilisateur a accepté l\'installation');
+                    } else {
+                        console.log('Utilisateur a refusé l\'installation');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+
+         // Vérifier l'état de la connexion
+  function updateOnlineStatus() {
+    const indicator = document.getElementById('offlineIndicator');
+    if (navigator.onLine) {
+      indicator.style.display = 'none';
+      // Si nous revenons en ligne, tenter de synchroniser
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.sync.register('sync-transactions');
+        });
+      }
+    } else {
+      indicator.style.display = 'block';
+    }
+  }
+
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  
+  // Vérifier l'état initial
+  updateOnlineStatus();
+  
+    </script>
+    
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

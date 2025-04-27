@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+
+{% block title %}Modifier mon profil | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation pour les sections du formulaire */
+    .form-section {
+        transition: all 0.3s ease;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        background-color: white;
+    }
+    
+    .form-section:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    /* Style pour l'upload de photo */
+    .profile-upload-label {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #f3f4f6;
+        color: #374151;
+        border-radius: 0.375rem;
+        font-weight: 500;
+    }
+    
+    .profile-upload-label:hover {
+        background-color: #e5e7eb;
+    }
+    
+    /* Animation pour les boutons */
+    .form-button {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .form-button::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+    }
+    
+    .form-button:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+        0% {
+            transform: scale(0, 0);
+            opacity: 0.5;
+        }
+        100% {
+            transform: scale(20, 20);
+            opacity: 0;
+        }
+    }
+    
+    /* Style pour les champs de formulaire */
+    .form-input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.375rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-input:focus {
+        border-color: #0d9488;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        outline: none;
+    }
+    
+    /* Style pour les toggles */
+    .toggle-container {
+        position: relative;
+        display: inline-block;
+        width: 3rem;
+        height: 1.5rem;
+    }
+    
+    .toggle-input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #e5e7eb;
+        transition: .4s;
+        border-radius: 1.5rem;
+    }
+    
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 1.25rem;
+        width: 1.25rem;
+        left: 0.125rem;
+        bottom: 0.125rem;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    
+    .toggle-input:checked + .toggle-slider {
+        background-color: #0d9488;
+    }
+    
+    .toggle-input:checked + .toggle-slider:before {
+        transform: translateX(1.5rem);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- En-tête -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center">
+            <a href="{% url 'profile_detail' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800">Modifier mon profil</h1>
+        </div>
+    </div>
+    
+    <!-- Informations de compte en haut -->
+    <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
+        <h2 class="text-sm font-medium text-gray-500 mb-3">Informations de compte</h2>
+        <ul class="flex flex-wrap items-center space-x-4 md:space-x-6">
+            <li class="flex items-center">
+                <span class="text-xs text-gray-500 mr-2">ID:</span>
+                <span class="bg-white px-3 py-1 rounded-md text-sm font-mono">{{ user.email }}</span>
+            </li>
+            <li class="flex items-center">
+                <span class="text-xs text-gray-500 mr-2">Tél:</span>
+                <span class="bg-white px-3 py-1 rounded-md text-sm font-mono">
+                    •••••• {{ user.phone_number|slice:"-6:" }}
+                </span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Formulaire de modification du profil -->
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Photo de profil -->
+        <div class="form-section">
+            <h3 class="font-semibold text-gray-800 mb-4">Photo de profil</h3>
+            <div class="flex flex-col sm:flex-row items-center">
+                <div class="mb-4 sm:mb-0 sm:mr-6">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" class="w-24 h-24 rounded-full object-cover border-2 border-gray-200">
+                    {% else %}
+                        <div class="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center border-2 border-gray-200">
+                            <span class="text-primary-600 text-2xl font-bold">{{ user.get_initials }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.profile_picture.id_for_label }}" class="profile-upload-label">
+                        <i class="fas fa-upload mr-2"></i> Choisir une photo
+                    </label>
+                    <div class="hidden">
+                        {{ form.profile_picture }}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Formats acceptés: JPG, PNG. Taille max: 2MB</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informations personnelles -->
+        <div class="form-section">
+            <h3 class="font-semibold text-gray-800 mb-4">Informations personnelles</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.first_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Nom</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.last_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
+                    {{ form.phone_number }}
+                    {% if form.phone_number.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.phone_number.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Date de naissance</label>
+                    {{ form.date_of_birth }}
+                    {% if form.date_of_birth.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.date_of_birth.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Préférences -->
+        <div class="form-section">
+            <h3 class="font-semibold text-gray-800 mb-4">Préférences</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.language.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Langue</label>
+                    {{ form.language }}
+                    {% if form.language.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.language.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="flex items-center space-x-4 mt-6">
+                    <div class="toggle-container">
+                        {{ form.dark_mode }}
+                        <span class="toggle-slider"></span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Mode sombre</span>
+                </div>
+                
+                <div class="flex items-center space-x-4 mt-6">
+                    <div class="toggle-container">
+                        {{ form.enable_notifications }}
+                        <span class="toggle-slider"></span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Activer les notifications</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Boutons d'action -->
+        <div class="flex justify-end space-x-3 mb-6">
+            <a href="{% url 'profile_detail' %}" class="form-button px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-all">
+                Annuler
+            </a>
+            <button type="submit" class="form-button px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-all">
+                Enregistrer les modifications
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animation d'entrée pour les sections du formulaire
+        const sections = document.querySelectorAll('.form-section');
+        sections.forEach((section, index) => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                section.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, 100 * index);
+        });
+        
+        // Gestion de l'upload de photo
+        const fileInput = document.getElementById('{{ form.profile_picture.id_for_label }}');
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const fileName = this.files[0].name;
+                    const fileSize = Math.round(this.files[0].size / 1024); // en KB
+                    
+                    // Afficher le nom du fichier sélectionné
+                    const fileLabel = document.querySelector('.profile-upload-label');
+                    if (fileLabel) {
+                        fileLabel.innerHTML = `<i class="fas fa-check mr-2"></i> ${fileName} (${fileSize} KB)`;
+                    }
+                }
+            });
+        }
+        
+        // Amélioration de l'expérience mobile
+        if (window.innerWidth < 768) {
+            const formInputs = document.querySelectorAll('.form-input, select');
+            formInputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    // Scroll vers le champ pour éviter qu'il soit caché par le clavier
+                    setTimeout(() => {
+                        this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+            });
+        }
+        
+        // Ajouter des classes aux champs de formulaire pour le style
+        document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select').forEach(input => {
+            input.classList.add('form-input');
+        });
+    });
+</script>
+{% endblock %}

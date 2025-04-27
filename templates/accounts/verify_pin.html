@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Vérification du code PIN | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pin-input-container input {
+        transition: all 0.2s ease;
+    }
+    
+    .pin-input-container input:focus {
+        transform: scale(1.05);
+    }
+    
+    @keyframes pulse-ring {
+        0% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        80%, 100% {
+            opacity: 0;
+        }
+    }
+    
+    .pulse-ring {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background-color: rgba(13, 148, 136, 0.3);
+        animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+    }
+    
+    .security-icon {
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover .security-icon {
+        transform: scale(1.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-[70vh]">
+    <div class="card w-full max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                <div class="pulse-ring"></div>
+                <i class="fas fa-lock text-primary-600 text-3xl security-icon"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">Vérification du code PIN</h2>
+            <p class="text-gray-600 mt-2">Veuillez entrer votre code PIN pour continuer.</p>
+        </div>
+        
+        <form method="post" action="{% url 'verify_pin' %}">
+            {% csrf_token %}
+            <div class="mb-6">
+                <div class="flex justify-center">
+                    <div class="pin-input-container flex space-x-3 justify-center">
+                        <input type="password" maxlength="1" class="w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                        <input type="password" maxlength="1" class="w-14 h-14 text-center text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" inputmode="numeric" pattern="[0-9]*" required>
+                    </div>
+                    <input type="hidden" name="pin_code" id="{{ form.pin_code.id_for_label }}" maxlength="4" required>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <button type="submit" class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    Vérifier
+                </button>
+            </div>
+        </form>
+        
+        {% if messages %}
+        <div class="mt-4">
+            {% for message in messages %}
+            <div class="p-4 rounded-md {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="mt-6 text-center">
+            <a href="javascript:history.back()" class="text-primary-600 hover:underline inline-flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i> Retour
+            </a>
+            <span class="mx-3 text-gray-300">|</span>
+            <a href="{% url 'dashboard' %}" class="text-primary-600 hover:underline inline-flex items-center">
+                <i class="fas fa-home mr-2"></i> Tableau de bord
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const pinInputs = document.querySelectorAll('.pin-input-container input');
+        const hiddenInput = document.getElementById('{{ form.pin_code.id_for_label }}');
+        
+        // Focus sur le premier champ au chargement
+        pinInputs[0].focus();
+        
+        // Gérer la saisie des chiffres du PIN
+        pinInputs.forEach((input, index) => {
+            input.addEventListener('input', function(e) {
+                if (e.target.value) {
+                    // Passer au champ suivant si disponible
+                    if (index < pinInputs.length - 1) {
+                        pinInputs[index + 1].focus();
+                    } else {
+                        // Si c'est le dernier champ, soumettre le formulaire après un court délai
+                        setTimeout(() => {
+                            if (hiddenInput.value.length === 4) {
+                                input.form.submit();
+                            }
+                        }, 300);
+                    }
+                }
+                
+                // Mettre à jour le champ caché avec la valeur complète du PIN
+                updateHiddenInput();
+            });
+            
+            // Gérer la touche de suppression
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    pinInputs[index - 1].focus();
+                    pinInputs[index - 1].value = '';
+                    updateHiddenInput();
+                }
+            });
+        });
+        
+        // Mettre à jour le champ caché avec la valeur complète du PIN
+        function updateHiddenInput() {
+            let pin = '';
+            pinInputs.forEach(input => {
+                pin += input.value;
+            });
+            hiddenInput.value = pin;
+        }
+        
+        // Permettre également la saisie au clavier numérique
+        document.addEventListener('keydown', function(e) {
+            // Si une touche numérique est pressée et qu'aucun champ n'est actuellement focus
+            if (e.key >= '0' && e.key <= '9' && document.activeElement.tagName !== 'INPUT') {
+                // Trouver le premier champ vide
+                for (let i = 0; i < pinInputs.length; i++) {
+                    if (!pinInputs[i].value) {
+                        pinInputs[i].focus();
+                        pinInputs[i].value = e.key;
+                        // Déclencher l'événement input pour activer la logique de passage au champ suivant
+                        const inputEvent = new Event('input', { bubbles: true });
+                        pinInputs[i].dispatchEvent(inputEvent);
+                        break;
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

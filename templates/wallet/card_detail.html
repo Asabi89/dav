@@ -1,0 +1,603 @@
+{% extends 'base.html' %}
+
+{% block title %}Détails de la carte - OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Conteneur de la carte avec perspective 3D */
+    .card-container {
+        perspective: 1000px;
+        width: 100%;
+        max-width: 400px;
+        height: 250px;
+        margin: 0 auto 2rem;
+    }
+    
+    /* Carte avec effet de retournement */
+    .credit-card {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    /* Classe appliquée quand la carte est retournée */
+    .credit-card.flipped {
+        transform: rotateY(180deg);
+    }
+    
+    /* Styles communs pour les deux faces */
+    .card-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Face avant */
+    .card-front {
+        background: linear-gradient(135deg, var(--tw-gradient-from), var(--tw-gradient-to));
+        color: white;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    
+    /* Face arrière (retournée) */
+    .card-back {
+        background: linear-gradient(135deg, var(--tw-gradient-to), var(--tw-gradient-from));
+        color: white;
+        transform: rotateY(180deg);
+        padding: 24px;
+    }
+    
+    /* Bande magnétique */
+    .magnetic-stripe {
+        background-color: #000;
+        height: 40px;
+        margin: 20px 0;
+    }
+    
+    /* Zone de signature avec CVV */
+    .signature-area {
+        background-color: #fff;
+        height: 40px;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        border-radius: 4px;
+    }
+    
+    /* Puce de carte */
+    .card-chip {
+        width: 50px;
+        height: 40px;
+        background: linear-gradient(135deg, #e6b800 0%, #ffcc00 50%, #e6b800 100%);
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .card-chip::before {
+        content: '';
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        bottom: 5px;
+        background: repeating-linear-gradient(90deg, 
+            transparent, 
+            transparent 2px, 
+            rgba(0,0,0,0.1) 2px, 
+            rgba(0,0,0,0.1) 4px);
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 16px;
+    }
+    
+    /* Styles pour les boutons d'action */
+    .action-button {
+        transition: all 0.3s ease;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        cursor: pointer;
+    }
+    
+    .action-button:hover {
+        background-color: #f9fafb;
+        transform: translateX(5px);
+    }
+    
+    /* Styles pour les badges de statut */
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Responsive design pour la carte */
+    @media (max-width: 640px) {
+        .card-container {
+            height: 200px;
+        }
+    }
+    
+    /* Animation pour le bouton CVV */
+    .cvv-button {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .cvv-button::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+    }
+    
+    .cvv-button:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+        0% {
+            transform: scale(0, 0);
+            opacity: 0.5;
+        }
+        100% {
+            transform: scale(20, 20);
+            opacity: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- En-tête avec bouton retour -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center">
+            <a href="{% url 'wallet_detail' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800">Détails de la carte</h1>
+        </div>
+        
+        <!-- Bouton pour voir le CVV -->
+        <button id="toggleCardBtn" class="cvv-button px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all">
+            <i class="fas fa-sync-alt mr-2"></i> Voir CVV
+        </button>
+    </div>
+    
+    <!-- Conteneur de la carte avec effet 3D -->
+    <div class="card-container">
+        <div id="creditCard" class="credit-card">
+            <!-- Face avant de la carte -->
+            <div class="card-face card-front" style="--tw-gradient-from: #0d9488; --tw-gradient-to: #115e59;">
+                <!-- Effet de brillance -->
+                <div class="card-shine"></div>
+                
+                <!-- Partie supérieure -->
+                <div class="flex justify-between items-start">
+                    <!-- Logo sans contact -->
+                    <i class="fas fa-wifi text-white text-xl transform rotate-90"></i>
+                    
+                    <!-- Logo du réseau de carte -->
+                    {% if '4' == card.card_number|first %}
+                    <i class="fab fa-cc-visa text-white text-3xl"></i>
+                    {% elif '5' == card.card_number|first %}
+                    <i class="fab fa-cc-mastercard text-white text-3xl"></i>
+                    {% elif '3' == card.card_number|first %}
+                    <i class="fab fa-cc-amex text-white text-3xl"></i>
+                    {% else %}
+                    <i class="fas fa-credit-card text-white text-3xl"></i>
+                    {% endif %}
+                </div>
+                
+                <!-- Puce de carte -->
+                <div class="card-chip mt-2"></div>
+                
+                <!-- Numéro de carte -->
+                <div class="mt-4">
+                    <p class="text-xl md:text-2xl tracking-widest font-mono">{{ card.mask_card_number }}</p>
+                </div>
+                
+                <!-- Partie inférieure -->
+                <div class="flex justify-between items-end">
+                    <div>
+                        <p class="text-xs opacity-80 mb-1">TITULAIRE</p>
+                        <p class="font-medium tracking-wider">{{ card.card_holder }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs opacity-80 mb-1">EXPIRE</p>
+                        <p class="font-medium">{{ card.expiry_month|stringformat:"02d" }}/{{ card.expiry_year|stringformat:"02d" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Face arrière de la carte -->
+            <div class="card-face card-back" style="--tw-gradient-from: #115e59; --tw-gradient-to: #134e4a;">
+                <!-- Bande magnétique -->
+                <div class="magnetic-stripe"></div>
+                
+                <!-- Zone de signature avec CVV -->
+                <div class="signature-area">
+                    <span class="text-gray-800 font-mono text-sm">SIGNATURE</span>
+                    <div id="cvvDisplay" class="text-gray-800 font-mono font-bold bg-gray-100 px-3 py-1 rounded">
+                        {{ card.cvv }}
+                    </div>
+                </div>
+                
+                <!-- Informations légales -->
+                <div class="mt-6">
+                    <p class="text-xs opacity-80">Cette carte est la propriété d'OPay. L'utilisation est soumise aux conditions générales.</p>
+                </div>
+                
+                <!-- Logo en bas -->
+                <div class="mt-4 text-right">
+                    <p class="text-lg font-bold">OPay</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Badge de statut -->
+    <div class="text-center mb-6">
+        <span class="status-badge inline-block
+            {% if card.status == 'active' %}bg-green-500 text-white
+            {% elif card.status == 'inactive' %}bg-gray-500 text-white
+            {% elif card.status == 'blocked' %}bg-red-500 text-white
+            {% else %}bg-yellow-500 text-white{% endif %}">
+            {{ card.get_status_display }}
+        </span>
+    </div>
+    
+    <!-- Informations de la carte -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-info-circle text-primary-600 mr-2"></i> Informations de la carte
+        </h2>
+        
+        <div class="space-y-3">
+            <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                <span class="text-gray-600">Type de carte</span>
+                <span class="font-medium">{{ card.get_card_type_display }}</span>
+            </div>
+            
+            <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                <span class="text-gray-600">Numéro</span>
+                <span class="font-medium">{{ card.mask_card_number }}</span>
+            </div>
+            
+            <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                <span class="text-gray-600">Titulaire</span>
+                <span class="font-medium">{{ card.card_holder }}</span>
+            </div>
+            
+            <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                <span class="text-gray-600">Date d'expiration</span>
+                <span class="font-medium">{{ card.expiry_month|stringformat:"02d" }}/{{ card.expiry_year }}</span>
+            </div>
+            
+            <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                <span class="text-gray-600">Statut</span>
+                <span class="font-medium px-3 py-1 rounded-full text-xs
+                    {% if card.status == 'active' %}bg-green-100 text-green-800
+                    {% elif card.status == 'inactive' %}bg-gray-100 text-gray-800
+                    {% elif card.status == 'blocked' %}bg-red-100 text-red-800
+                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {{ card.get_status_display }}
+                </span>
+            </div>
+            
+            <div class="flex justify-between items-center py-3">
+                <span class="text-gray-600">Date d'ajout</span>
+                <span class="font-medium">{{ card.created_at|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Actions -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-cog text-primary-600 mr-2"></i> Actions
+        </h2>
+        
+        <div class="space-y-3">
+            <a href="{% url 'toggle_card_status' card.id %}" class="action-button">
+                <div class="flex items-center">
+                    {% if card.status == 'active' %}
+                    <i class="fas fa-toggle-on text-green-600 text-xl mr-3"></i>
+                    <div>
+                        <span class="font-medium">Désactiver la carte</span>
+                        <p class="text-sm text-gray-500">Suspendre temporairement l'utilisation</p>
+                    </div>
+                    {% else %}
+                    <i class="fas fa-toggle-off text-gray-400 text-xl mr-3"></i>
+                    <div>
+                        <span class="font-medium">Activer la carte</span>
+                        <p class="text-sm text-gray-500">Permettre l'utilisation pour les paiements</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </a>
+            
+            <button id="toggleCvvBtn" class="action-button w-full">
+                <div class="flex items-center">
+                    <i class="fas fa-eye text-primary-600 text-xl mr-3"></i>
+                    <div>
+                        <span class="font-medium">Afficher le code CVV</span>
+                        <p class="text-sm text-gray-500">Voir le code de sécurité à 3 chiffres</p>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </button>
+            
+            <button id="blockCardBtn" class="action-button w-full">
+                <div class="flex items-center">
+                    <i class="fas fa-lock text-red-600 text-xl mr-3"></i>
+                    <div>
+                        <span class="font-medium">Bloquer la carte</span>
+                        <p class="text-sm text-gray-500">Bloquer définitivement en cas de perte ou vol</p>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </button>
+            
+            <button id="limitCardBtn" class="action-button w-full">
+                <div class="flex items-center">
+                    <i class="fas fa-sliders-h text-blue-600 text-xl mr-3"></i>
+                    <div>
+                        <span class="font-medium">Gérer les limites</span>
+                        <p class="text-sm text-gray-500">Définir des limites de paiement et de retrait</p>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Avertissement -->
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-600"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">Attention</h3>
+                <p class="text-sm text-red-700 mt-1">
+                    Si vous avez perdu votre carte ou si vous soupçonnez une utilisation frauduleuse, bloquez-la immédiatement et contactez notre service client au <strong>01 23 45 67 89</strong>.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bouton de suppression -->
+    <div class="text-center">
+        <button id="deleteCardBtn" class="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all">
+            <i class="fas fa-trash-alt mr-2"></i> Supprimer cette carte
+        </button>
+    </div>
+    
+    <!-- Modal de confirmation pour la suppression -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Confirmer la suppression</h3>
+            <p class="text-gray-600 mb-6">
+                Êtes-vous sûr de vouloir supprimer cette carte ? Cette action est irréversible.
+            </p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelDeleteBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300">
+                    Annuler
+                </button>
+                <a href="#" class="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700">
+                    Supprimer
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pour les limites de carte -->
+    <div id="limitModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Limites de la carte</h3>
+                <button id="closeLimitBtn" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Limite quotidienne de paiement
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500">€</span>
+                        </div>
+                        <input type="number" class="form-input pl-8" value="1000">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Limite quotidienne de retrait
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500">€</span>
+                        </div>
+                        <input type="number" class="form-input pl-8" value="500">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Paiements en ligne
+                    </label>
+                    <div class="flex items-center">
+                        <input type="checkbox" class="form-checkbox" checked>
+                        <span class="ml-2 text-gray-700">Autoriser les paiements en ligne</span>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Paiements à l'étranger
+                    </label>
+                    <div class="flex items-center">
+                        <input type="checkbox" class="form-checkbox" checked>
+                        <span class="ml-2 text-gray-700">Autoriser les paiements à l'étranger</span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="button" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700">
+                        Enregistrer les limites
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments DOM
+        const creditCard = document.getElementById('creditCard');
+        const toggleCardBtn = document.getElementById('toggleCardBtn');
+        const toggleCvvBtn = document.getElementById('toggleCvvBtn');
+        const blockCardBtn = document.getElementById('blockCardBtn');
+        const limitCardBtn = document.getElementById('limitCardBtn');
+        const deleteCardBtn = document.getElementById('deleteCardBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const limitModal = document.getElementById('limitModal');
+        const closeLimitBtn = document.getElementById('closeLimitBtn');
+        
+        // Fonction pour retourner la carte
+        function toggleCard() {
+            creditCard.classList.toggle('flipped');
+            
+            // Mettre à jour le texte du bouton
+            if (creditCard.classList.contains('flipped')) {
+                toggleCardBtn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Face avant';
+            } else {
+                toggleCardBtn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Voir CVV';
+            }
+        }
+        
+        // Ajouter les écouteurs d'événements
+        toggleCardBtn.addEventListener('click', toggleCard);
+        toggleCvvBtn.addEventListener('click', toggleCard);
+        
+        // Gestion du modal de suppression
+        deleteCardBtn.addEventListener('click', function() {
+            deleteModal.classList.remove('hidden');
+        });
+        
+        cancelDeleteBtn.addEventListener('click', function() {
+            deleteModal.classList.add('hidden');
+        });
+        
+        // Fermer le modal en cliquant en dehors
+        deleteModal.addEventListener('click', function(e) {
+            if (e.target === deleteModal) {
+                deleteModal.classList.add('hidden');
+            }
+        });
+        
+        // Gestion du modal des limites
+        limitCardBtn.addEventListener('click', function() {
+            limitModal.classList.remove('hidden');
+        });
+        
+        closeLimitBtn.addEventListener('click', function() {
+            limitModal.classList.add('hidden');
+        });
+        
+        // Fermer le modal en cliquant en dehors
+        limitModal.addEventListener('click', function(e) {
+            if (e.target === limitModal) {
+                limitModal.classList.add('hidden');
+            }
+        });
+        
+        // Effet de brillance qui suit le mouvement de la souris
+        const cardFront = document.querySelector('.card-front');
+        const cardShine = document.querySelector('.card-shine');
+        
+        if (cardFront && cardShine) {
+            cardFront.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            cardFront.addEventListener('mouseleave', function() {
+                cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+        
+       // Simulation du blocage de carte
+blockCardBtn.addEventListener('click', function() {
+    if (confirm('Êtes-vous sûr de vouloir bloquer cette carte ? Cette action est irréversible.')) {
+        // Instead of trying to redirect to a non-existent URL, submit a form or use AJAX
+        window.location.href = "{% url 'toggle_card_status' card.id %}?action=block";
+    }
+});
+
+        
+        // Ajout d'un effet tactile pour les appareils mobiles
+        document.querySelectorAll('.action-button').forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.style.backgroundColor = '#f3f4f6';
+            });
+            
+            button.addEventListener('touchend', function() {
+                this.style.backgroundColor = '';
+            });
+        });
+    });
+</script>
+{% endblock %}

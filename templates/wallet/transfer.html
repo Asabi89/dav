@@ -1,0 +1,909 @@
+{% extends 'base.html' %}
+
+{% block title %}Transfert d'argent - OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+.card-shadow {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.card-shadow:hover {
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+.input-with-icon {
+    position: relative;
+}
+.input-with-icon input,
+.input-with-icon textarea {
+    border: 2px solid #e5e7eb;
+    transition: border-color 0.2s ease;
+}
+.input-with-icon input:focus,
+.input-with-icon textarea:focus {
+    border-color: #0d9488;
+}
+.contact-card {
+    border: 2px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+.contact-card:hover {
+    border-color: #0d9488;
+    transform: translateY(-2px);
+}
+.contact-card.selected {
+    border-color: #0d9488;
+    background-color: rgba(13, 148, 136, 0.05);
+}
+.info-card {
+    border-left: 4px solid #0d9488;
+}
+.btn-transfer {
+    background: linear-gradient(to right, #0d9488, #0f766e);
+    transition: all 0.3s ease;
+}
+.btn-transfer:hover {
+    background: linear-gradient(to right, #0f766e, #115e59);
+    transform: translateY(-1px);
+}
+.btn-transfer:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+.balance-card {
+    background: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+    border: 1px solid #99f6e4;
+}
+.amount-input::-webkit-outer-spin-button,
+.amount-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.amount-input {
+    -moz-appearance: textfield;
+}
+/* Styles pour le résultat de recherche */
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+}
+.search-result-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.search-result-item:last-child {
+    border-bottom: none;
+}
+.search-result-item:hover {
+    background-color: #f9fafb;
+}
+.search-result-item.selected {
+    background-color: #f0fdfa;
+    border-left: 3px solid #0d9488;
+}
+/* Styles pour la carte de destinataire */
+.recipient-card {
+    background: linear-gradient(135deg, #f0fdfa, #e6fffa);
+    border: 1px solid #99f6e4;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.recipient-avatar {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background-color: #0d9488;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+.recipient-info {
+    flex: 1;
+}
+.recipient-name {
+    font-weight: bold;
+    color: #0f172a;
+}
+.recipient-contact {
+    color: #64748b;
+    font-size: 0.875rem;
+}
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(13, 148, 136, 0.3);
+    border-radius: 50%;
+    border-top-color: #0d9488;
+    animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+/* Styles pour la modale de confirmation */
+#confirmTransferModal > div {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+/* Animation pour le bouton de confirmation */
+#confirmTransferBtn {
+    position: relative;
+    overflow: hidden;
+}
+#confirmTransferBtn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+#confirmTransferBtn:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(20, 20);
+        opacity: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- En-tête avec bouton retour -->
+    <div class="flex items-center mb-6">
+        <a href="{% url 'wallet_detail' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-800">Transfert d'argent</h1>
+    </div>
+
+    <!-- Solde actuel -->
+    <div class="balance-card rounded-xl shadow-sm p-6 mb-6 card-shadow">
+        <div class="text-center">
+            <p class="text-gray-600 mb-2 font-medium">Solde disponible</p>
+            <p class="text-3xl font-bold text-primary-700">{{ wallet.balance|floatformat:2 }} FCFA</p>
+            {% if wallet.balance <= 0 %}
+            <div class="mt-3 text-sm text-red-600 bg-red-50 p-2 rounded-md inline-block">
+                <i class="fas fa-exclamation-circle mr-1"></i> Solde insuffisant pour effectuer un transfert
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Formulaire de transfert -->
+    <div class="bg-white rounded-xl p-6 mb-6 card-shadow border-2 border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-paper-plane text-primary-600 mr-2"></i> Envoyer de l'argent
+        </h2>
+        <form method="post" class="space-y-6" id="transferForm">
+            {% csrf_token %}
+            
+            <!-- Destinataire -->
+            <div class="input-with-icon">
+                <label for="recipient" class="block text-sm font-medium text-gray-700 mb-2">
+                    Destinataire <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-user text-gray-400"></i>
+                    </div>
+                    <input type="text" name="recipient" id="recipient"
+                        class="form-input pl-10 pr-4 py-3 rounded-lg w-full"
+                        placeholder="Email ou numéro de téléphone" required>
+                    <div id="searchSpinner" class="absolute inset-y-0 right-0 pr-3 flex items-center hidden">
+                        <span class="loading-spinner"></span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    <i class="fas fa-info-circle mr-1"></i> Entrez l'email ou le numéro de téléphone du bénéficiaire
+                </p>
+                
+                <!-- Résultats de recherche -->
+                <div id="searchResults" class="search-results mt-1 hidden"></div>
+                
+                <!-- Carte d'information du destinataire -->
+                <div id="recipientCard" class="recipient-card hidden">
+                    <div id="recipientAvatar" class="recipient-avatar">
+                        <!-- Initiales ou image de profil -->
+                    </div>
+                    <div class="recipient-info">
+                        <div id="recipientName" class="recipient-name"></div>
+                        <div id="recipientContact" class="recipient-contact"></div>
+                    </div>
+                    <button type="button" id="clearRecipient" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Montant -->
+            <div class="input-with-icon">
+                <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
+                    Montant <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-money-bill-wave text-gray-400"></i>
+                    </div>
+                    <input type="number" name="amount" id="amount"
+                        class="form-input pl-10 pr-16 py-3 rounded-lg amount-input w-full"
+                        placeholder="0.00" min="100" max="{{ wallet.balance }}" step="100"
+                        inputmode="decimal" required>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 font-medium">FCFA</span>
+                    </div>
+                </div>
+                <div class="flex justify-between mt-1">
+                    <p class="text-xs text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i> Minimum: 100 FCFA
+                    </p>
+                    <p class="text-xs text-primary-600 cursor-pointer hover:underline" id="sendMaxAmount">
+                        Envoyer le montant maximum
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div class="input-with-icon">
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Message (optionnel)
+                </label>
+                <div class="relative">
+                    <div class="absolute top-3 left-3 pointer-events-none">
+                        <i class="fas fa-comment-alt text-gray-400"></i>
+                    </div>
+                    <textarea name="description" id="description" rows="3"
+                        class="form-input pl-10 py-3 rounded-lg w-full"
+                        placeholder="Ajoutez un message pour le destinataire"></textarea>
+                </div>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="submit"
+                    class="btn-transfer w-full sm:w-auto px-6 py-3 text-white rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center"
+                    {% if wallet.balance <= 0 %}disabled{% endif %}>
+                    <i class="fas fa-exchange-alt mr-2"></i> Effectuer le transfert
+                </button>
+                <a href="{% url 'wallet_detail' %}"
+                    class="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-center transition-colors">
+                    Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Contacts récents -->
+    <div class="bg-white rounded-xl p-6 mb-6 card-shadow border-2 border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-address-book text-primary-600 mr-2"></i> Contacts récents
+        </h2>
+        {% if recent_recipients %}
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {% for recipient in recent_recipients %}
+            <button type="button"
+                class="contact-card flex flex-col items-center p-3 rounded-lg hover:bg-gray-50"
+                data-recipient="{{ recipient.email|default:recipient.phone_number }}"
+                data-name="{{ recipient.get_full_name|default:recipient.username }}"
+                data-initials="{{ recipient.get_initials }}"
+                data-id="{{ recipient.id }}"
+                {% if recipient.profile_picture %}data-picture="{{ recipient.profile_picture.url }}"{% endif %}>
+                <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-2">
+                    {% if recipient.profile_picture %}
+                    <img src="{{ recipient.profile_picture.url }}" alt="{{ recipient.get_full_name }}" class="w-full h-full rounded-full object-cover">
+                    {% else %}
+                    <span class="text-primary-600 font-medium">{{ recipient.get_initials }}</span>
+                    {% endif %}
+                </div>
+                <p class="text-sm font-medium text-gray-800 truncate w-full text-center">{{ recipient.get_full_name|default:recipient.username }}</p>
+                <p class="text-xs text-gray-500 truncate w-full text-center">{{ recipient.email|default:recipient.phone_number }}</p>
+            </button>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Contacts de démonstration -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <button type="button" class="contact-card flex flex-col items-center p-3 rounded-lg hover:bg-gray-50"
+                data-recipient="jean@example.com" data-name="Jean Dupont" data-initials="JD">
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-2">
+                    <span class="text-blue-600 font-medium">JD</span>
+                </div>
+                <p class="text-sm font-medium text-gray-800 truncate w-full text-center">Jean Dupont</p>
+                <p class="text-xs text-gray-500 truncate w-full text-center">jean@example.com</p>
+            </button>
+            <button type="button" class="contact-card flex flex-col items-center p-3 rounded-lg hover:bg-gray-50"
+                data-recipient="marie@example.com" data-name="Marie Leclerc" data-initials="ML">
+                <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                    <span class="text-green-600 font-medium">ML</span>
+                </div>
+                <p class="text-sm font-medium text-gray-800 truncate w-full text-center">Marie Leclerc</p>
+                <p class="text-xs text-gray-500 truncate w-full text-center">marie@example.com</p>
+            </button>
+            <button type="button" class="contact-card flex flex-col items-center p-3 rounded-lg hover:bg-gray-50"
+                data-recipient="pierre@example.com" data-name="Pierre Blanc" data-initials="PB">
+                <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-2">
+                    <span class="text-purple-600 font-medium">PB</span>
+                </div>
+                <p class="text-sm font-medium text-gray-800 truncate w-full text-center">Pierre Blanc</p>
+                <p class="text-xs text-gray-500 truncate w-full text-center">pierre@example.com</p>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Informations sur les transferts -->
+    <div class="bg-white rounded-xl p-6 card-shadow border-2 border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-info-circle text-primary-600 mr-2"></i> Informations importantes
+        </h2>
+        <div class="space-y-4">
+            <div class="flex items-start p-3 bg-blue-50 rounded-lg info-card">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-bolt text-primary-600 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Transferts instantanés</h3>
+                    <p class="text-sm text-gray-600">Les transferts entre utilisateurs OPay sont instantanés et gratuits.</p>
+                </div>
+            </div>
+            <div class="flex items-start p-3 bg-green-50 rounded-lg info-card">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-money-bill-wave text-primary-600 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Montant minimum</h3>
+                    <p class="text-sm text-gray-600">Le montant minimum pour un transfert est de 100 FCFA.</p>
+                </div>
+            </div>
+            <div class="flex items-start p-3 bg-yellow-50 rounded-lg info-card">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-shield-alt text-primary-600 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Limites</h3>
+                    <p class="text-sm text-gray-600">Limite quotidienne: {{ wallet.daily_limit|floatformat:0 }} FCFA. Limite mensuelle: {{ wallet.monthly_limit|floatformat:0 }} FCFA.</p>
+                </div>
+            </div>
+            <div class="flex items-start p-3 bg-red-50 rounded-lg info-card">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-exclamation-triangle text-primary-600 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Attention</h3>
+                    <p class="text-sm text-gray-600">Vérifiez toujours les coordonnées du destinataire avant d'effectuer un transfert. Les transactions ne peuvent pas être annulées une fois confirmées.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique des transferts récents -->
+    <div class="bg-white rounded-xl p-6 mt-6 card-shadow border-2 border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-history text-primary-600 mr-2"></i> Transferts récents
+        </h2>
+        {% if recent_transfers %}
+        <div class="space-y-3">
+            {% for transaction in recent_transfers %}
+            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                <div class="flex items-center">
+                    {% if transaction.transaction_type == 'transfer_out' %}
+                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                        <i class="fas fa-arrow-up text-red-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-800">Envoyé à {{ transaction.recipient.get_full_name|default:transaction.recipient.email }}</p>
+                        <p class="text-xs text-gray-500">{{ transaction.timestamp|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    {% else %}
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                        <i class="fas fa-arrow-down text-green-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-800">Reçu de {{ transaction.sender.get_full_name|default:transaction.sender.email }}</p>
+                        <p class="text-xs text-gray-500">{{ transaction.timestamp|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="text-right">
+                    <p class="font-bold {% if transaction.transaction_type == 'transfer_out' %}text-red-600{% else %}text-green-600{% endif %}">
+                        {% if transaction.transaction_type == 'transfer_out' %}-{% else %}+{% endif %}{{ transaction.amount|floatformat:2 }} FCFA
+                    </p>
+                    <a href="{% url 'transaction_detail' transaction.id %}" class="text-xs text-primary-600 hover:underline">Détails</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="mt-4 text-center">
+            <a href="{% url 'transaction_history' %}?type=transfer_in,transfer_out" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                Voir tous les transferts <i class="fas fa-chevron-right ml-1"></i>
+            </a>
+        </div>
+        {% else %}
+        <div class="text-center py-6 bg-gray-50 rounded-lg">
+            <i class="fas fa-exchange-alt text-gray-400 text-3xl mb-2"></i>
+            <p class="text-gray-500">Aucun transfert récent</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modale de confirmation de transfert -->
+<div id="confirmTransferModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl transform transition-all">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exchange-alt text-primary-600 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900">Confirmer le transfert</h3>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-600">Destinataire:</span>
+                <span id="confirmRecipientName" class="font-medium text-gray-800"></span>
+            </div>
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-600">Montant:</span>
+                <span id="confirmAmount" class="font-bold text-primary-600"></span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-gray-600">Frais:</span>
+                <span class="font-medium text-gray-800">0 FCFA</span>
+            </div>
+        </div>
+        
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        Cette opération est irréversible. Veuillez vérifier les informations avant de confirmer.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-3">
+            <button id="confirmTransferBtn" class="btn-transfer w-full sm:w-auto px-6 py-3 text-white rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center">
+                <i class="fas fa-check mr-2"></i> Confirmer
+            </button>
+            <button id="cancelTransferBtn" class="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center justify-center">
+                <i class="fas fa-times mr-2"></i> Annuler
+            </button>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Éléments DOM
+    const recipientInput = document.getElementById('recipient');
+    const searchResults = document.getElementById('searchResults');
+    const searchSpinner = document.getElementById('searchSpinner');
+    const recipientCard = document.getElementById('recipientCard');
+    const recipientAvatar = document.getElementById('recipientAvatar');
+    const recipientName = document.getElementById('recipientName');
+    const recipientContact = document.getElementById('recipientContact');
+    const clearRecipient = document.getElementById('clearRecipient');
+    const contactCards = document.querySelectorAll('.contact-card');
+    const amountInput = document.getElementById('amount');
+    const sendMaxButton = document.getElementById('sendMaxAmount');
+    const transferForm = document.getElementById('transferForm');
+    
+    // Variable pour stocker l'ID du destinataire sélectionné
+    let selectedRecipientId = null;
+    
+    // Délai pour la recherche
+    let searchTimeout = null;
+    
+    // Fonction pour rechercher des destinataires
+    function searchRecipients(query) {
+        if (query.length < 3) {
+            searchResults.classList.add('hidden');
+            return;
+        }
+        
+        // Afficher le spinner de chargement
+        searchSpinner.classList.remove('hidden');
+        
+        // Effacer les résultats précédents
+        clearSearchResults();
+        
+        // Faire une requête AJAX pour rechercher des destinataires
+        fetch(`/wallet/search-recipient/?query=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                // Cacher le spinner
+                searchSpinner.classList.add('hidden');
+                
+                if (data.success && data.results.length > 0) {
+                    // Afficher les résultats
+                    searchResults.classList.remove('hidden');
+                    
+                    // Créer les éléments de résultat
+                    data.results.forEach(user => {
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'search-result-item flex items-center';
+                        resultItem.dataset.id = user.id;
+                        resultItem.dataset.email = user.email;
+                        resultItem.dataset.name = user.name;
+                        resultItem.dataset.phone = user.phone;
+                        resultItem.dataset.initials = user.initials;
+                        if (user.profile_picture) {
+                            resultItem.dataset.picture = user.profile_picture;
+                        }
+                        
+                        // Avatar
+                        const avatar = document.createElement('div');
+                        avatar.className = 'w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mr-3';
+                        if (user.profile_picture) {
+                            const img = document.createElement('img');
+                            img.src = user.profile_picture;
+                            img.alt = user.name;
+                            img.className = 'w-full h-full rounded-full object-cover';
+                            avatar.appendChild(img);
+                        } else {
+                            const initials = document.createElement('span');
+                            initials.className = 'text-primary-600 font-medium';
+                            initials.textContent = user.initials;
+                            avatar.appendChild(initials);
+                        }
+                        
+                        // Informations utilisateur
+                        const userInfo = document.createElement('div');
+                        const userName = document.createElement('div');
+                        userName.className = 'font-medium text-gray-800';
+                        userName.textContent = user.name;
+                        const userContact = document.createElement('div');
+                        userContact.className = 'text-xs text-gray-500';
+                        userContact.textContent = user.email;
+                        if (user.phone) {
+                            const phoneSpan = document.createElement('span');
+                            phoneSpan.className = 'ml-2';
+                            phoneSpan.textContent = user.phone;
+                            userContact.appendChild(phoneSpan);
+                        }
+                        userInfo.appendChild(userName);
+                        userInfo.appendChild(userContact);
+                        
+                        // Assembler l'élément
+                        resultItem.appendChild(avatar);
+                        resultItem.appendChild(userInfo);
+                        
+                        // Ajouter l'événement de clic
+                        resultItem.addEventListener('click', function() {
+                            selectRecipient(this);
+                        });
+                        
+                        searchResults.appendChild(resultItem);
+                    });
+                } else {
+                    // Aucun résultat trouvé
+                    searchResults.classList.remove('hidden');
+                    const noResult = document.createElement('div');
+                    noResult.className = 'p-3 text-center text-gray-500';
+                    noResult.textContent = 'Aucun utilisateur trouvé';
+                    searchResults.appendChild(noResult);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la recherche:', error);
+                searchSpinner.classList.add('hidden');
+            });
+    }
+    
+    // Fonction pour effacer les résultats de recherche
+    function clearSearchResults() {
+        searchResults.innerHTML = '';
+        searchResults.classList.add('hidden');
+    }
+    
+    // Fonction pour sélectionner un destinataire
+    function selectRecipient(element) {
+        // Récupérer les données du destinataire
+        const id = element.dataset.id;
+        const email = element.dataset.email;
+        const name = element.dataset.name;
+        const phone = element.dataset.phone || '';
+        const initials = element.dataset.initials;
+        const picture = element.dataset.picture;
+        
+        // Stocker l'ID du destinataire
+        selectedRecipientId = id;
+        
+        // Mettre à jour le champ de saisie
+        recipientInput.value = email;
+        
+        // Cacher les résultats de recherche
+        clearSearchResults();
+        
+        // Afficher la carte du destinataire
+        recipientCard.classList.remove('hidden');
+        
+        // Mettre à jour l'avatar
+        if (picture) {
+            recipientAvatar.innerHTML = `<img src="${picture}" alt="${name}" class="w-full h-full rounded-full object-cover">`;
+        } else {
+            recipientAvatar.innerHTML = initials;
+        }
+        
+        // Mettre à jour les informations
+        recipientName.textContent = name;
+        recipientContact.textContent = email;
+        if (phone) {
+            recipientContact.innerHTML += `<br><span class="text-xs">${phone}</span>`;
+        }
+        
+        // Focus sur le champ montant
+        amountInput.focus();
+    }
+    
+    // Événement de saisie pour la recherche
+    recipientInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        // Cacher la carte du destinataire
+        recipientCard.classList.add('hidden');
+        selectedRecipientId = null;
+        
+        // Effacer le timeout précédent
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Définir un nouveau timeout pour éviter trop de requêtes
+        searchTimeout = setTimeout(() => {
+            searchRecipients(query);
+        }, 300);
+    });
+    
+    // Événement de focus pour afficher les résultats
+    recipientInput.addEventListener('focus', function() {
+        const query = this.value.trim();
+        if (query.length >= 3 && !selectedRecipientId) {
+            searchRecipients(query);
+        }
+    });
+    
+    // Événement pour effacer le destinataire
+    clearRecipient.addEventListener('click', function() {
+        recipientCard.classList.add('hidden');
+        recipientInput.value = '';
+        selectedRecipientId = null;
+        recipientInput.focus();
+    });
+    
+    // Cliquer en dehors des résultats pour les fermer
+    document.addEventListener('click', function(e) {
+        if (!searchResults.contains(e.target) && e.target !== recipientInput) {
+            clearSearchResults();
+        }
+    });
+    
+    // Sélection des contacts récents
+    contactCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Retirer la classe selected de tous les contacts
+            contactCards.forEach(c => c.classList.remove('selected'));
+            
+            // Ajouter la classe selected au contact cliqué
+            this.classList.add('selected');
+            
+            // Créer un élément factice avec les données du contact
+            const fakeElement = {
+                dataset: {
+                    id: this.dataset.id || '0',
+                    email: this.dataset.recipient,
+                    name: this.dataset.name,
+                    initials: this.dataset.initials,
+                    picture: this.dataset.picture || ''
+                }
+            };
+            
+            // Sélectionner le destinataire
+            selectRecipient(fakeElement);
+        });
+    });
+    
+    // Envoyer le montant maximum
+    if (sendMaxButton) {
+        sendMaxButton.addEventListener('click', function() {
+            // Récupérer le solde disponible et définir comme montant
+            const balance = {{ wallet.balance|floatformat:2 }};
+            amountInput.value = balance;
+            amountInput.focus();
+        });
+    }
+    
+    // Validation du formulaire
+    if (transferForm) {
+        transferForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Empêcher la soumission par défaut
+            
+            const amount = parseFloat(amountInput.value);
+            const balance = {{ wallet.balance|floatformat:2 }};
+            
+            // Vérifier si un destinataire est sélectionné
+            if (!recipientInput.value) {
+                alert('Veuillez sélectionner un destinataire.');
+                recipientInput.focus();
+                return false;
+            }
+            
+            // Vérifier si le montant est valide
+            if (isNaN(amount) || amount <= 0) {
+                alert('Veuillez entrer un montant valide.');
+                amountInput.focus();
+                return false;
+            }
+            
+            // Vérifier si le montant est supérieur au solde
+            if (amount > balance) {
+                alert('Le montant du transfert ne peut pas dépasser votre solde disponible.');
+                amountInput.focus();
+                return false;
+            }
+            
+            // Vérifier si le montant est supérieur au minimum
+            if (amount < 100) {
+                alert('Le montant minimum pour un transfert est de 100 FCFA.');
+                amountInput.focus();
+                return false;
+            }
+            
+            const modal = document.getElementById('confirmTransferModal');
+            const confirmRecipientName = document.getElementById('confirmRecipientName');
+            const confirmAmount = document.getElementById('confirmAmount');
+            
+            // Mettre à jour les informations dans la modale
+            confirmRecipientName.textContent = recipientCard.classList.contains('hidden')
+                ? recipientInput.value
+                : recipientName.textContent;
+            confirmAmount.textContent = `${amount.toLocaleString('fr-FR')} FCFA`;
+            
+            // Afficher la modale
+            modal.classList.remove('hidden');
+            
+            // Animation d'entrée
+            const modalContent = modal.querySelector('div');
+            modalContent.style.opacity = '0';
+            modalContent.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                modalContent.style.opacity = '1';
+                modalContent.style.transform = 'scale(1)';
+            }, 10);
+        });
+        
+        // Gérer le bouton de confirmation dans la modale
+        const confirmTransferBtn = document.getElementById('confirmTransferBtn');
+        confirmTransferBtn.addEventListener('click', function() {
+            // Cacher la modale
+            document.getElementById('confirmTransferModal').classList.add('hidden');
+            
+            // Afficher un indicateur de chargement sur le bouton
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Traitement en cours...';
+            this.disabled = true;
+            
+            // Soumettre le formulaire
+            transferForm.submit();
+        });
+        
+        // Gérer le bouton d'annulation dans la modale
+        const cancelTransferBtn = document.getElementById('cancelTransferBtn');
+        cancelTransferBtn.addEventListener('click', function() {
+            // Cacher la modale
+            document.getElementById('confirmTransferModal').classList.add('hidden');
+        });
+        
+        // Fermer la modale en cliquant en dehors
+        const confirmTransferModal = document.getElementById('confirmTransferModal');
+        confirmTransferModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+        
+        // Fermer la modale avec la touche Échap
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !confirmTransferModal.classList.contains('hidden')) {
+                confirmTransferModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Animation des cartes
+    const cards = document.querySelectorAll('.card-shadow');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Support pour la navigation au clavier dans les résultats de recherche
+    document.addEventListener('keydown', function(e) {
+        if (searchResults.classList.contains('hidden')) return;
+        
+        const resultItems = searchResults.querySelectorAll('.search-result-item');
+        if (resultItems.length === 0) return;
+        
+        const currentSelected = searchResults.querySelector('.selected');
+        let currentIndex = -1;
+        
+        if (currentSelected) {
+            for (let i = 0; i < resultItems.length; i++) {
+                if (resultItems[i] === currentSelected) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        // Touche flèche bas
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const nextIndex = currentIndex < resultItems.length - 1 ? currentIndex + 1 : 0;
+            if (currentSelected) currentSelected.classList.remove('selected');
+            resultItems[nextIndex].classList.add('selected');
+            resultItems[nextIndex].scrollIntoView({ block: 'nearest' });
+        }
+        // Touche flèche haut
+        else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : resultItems.length - 1;
+            if (currentSelected) currentSelected.classList.remove('selected');
+            resultItems[prevIndex].classList.add('selected');
+            resultItems[prevIndex].scrollIntoView({ block: 'nearest' });
+        }
+        // Touche Entrée
+        else if (e.key === 'Enter' && currentSelected) {
+            e.preventDefault();
+            selectRecipient(currentSelected);
+        }
+        // Touche Échap
+        else if (e.key === 'Escape') {
+            clearSearchResults();
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

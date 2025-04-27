@@ -1,0 +1,552 @@
+{% extends 'base.html' %}
+
+{% block title %}Détail de la transaction | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation d'entrée pour les éléments */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-in {
+        animation: fadeInUp 0.5s ease-out forwards;
+        opacity: 0;
+    }
+    
+    .animate-delay-1 {
+        animation-delay: 0.1s;
+    }
+    
+    .animate-delay-2 {
+        animation-delay: 0.2s;
+    }
+    
+    .animate-delay-3 {
+        animation-delay: 0.3s;
+    }
+    
+    .animate-delay-4 {
+        animation-delay: 0.4s;
+    }
+    
+    /* Animation de succès */
+    @keyframes checkmark {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .success-icon {
+        animation: checkmark 0.8s ease-in-out forwards;
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 1rem;
+    }
+    
+    /* Styles pour les cartes */
+    .transaction-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .transaction-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 4px 6px rgba(0, 0, 0, 0.05);
+        transform: translateY(-5px);
+    }
+    
+    /* Badge de statut */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.025em;
+    }
+    
+    /* Styles pour les détails de transaction */
+    .transaction-detail {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .transaction-detail:last-child {
+        border-bottom: none;
+    }
+    
+    /* Styles pour le reçu */
+    .receipt {
+        position: relative;
+        background-color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .receipt::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background-image: linear-gradient(45deg, white 25%, transparent 25%),
+                          linear-gradient(-45deg, white 25%, transparent 25%);
+        background-size: 20px 20px;
+        background-position: 0 -10px;
+    }
+    
+    .receipt::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background-image: linear-gradient(45deg, transparent 25%, white 25%),
+                          linear-gradient(-45deg, transparent 25%, white 25%);
+        background-size: 20px 20px;
+        background-position: 0 10px;
+    }
+    
+    /* Animation pour le bouton de téléchargement */
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(13, 148, 136, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);
+        }
+    }
+    
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    /* Styles pour les boutons d'action */
+    .action-button {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .action-button::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+    }
+    
+    .action-button:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+        0% {
+            transform: scale(0, 0);
+            opacity: 0.5;
+        }
+        100% {
+            transform: scale(20, 20);
+            opacity: 0;
+        }
+    }
+    
+    /* Amélioration responsive */
+    @media (max-width: 640px) {
+        .transaction-detail {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
+        }
+        
+        .receipt {
+            padding: 1.5rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .action-buttons .action-button {
+            width: 100%;
+            margin-bottom: 0.5rem;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- En-tête avec bouton retour -->
+    <div class="flex items-center mb-6 animate-fade-in">
+        <a href="{% url 'transaction_history' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-800">Détail de la transaction</h1>
+    </div>
+    
+    <!-- Carte de reçu avec effet de brillance -->
+    <div class="receipt mb-8 border-2 border-gray-200 animate-fade-in animate-delay-1">
+        <div class="card-shine"></div>
+        
+        <!-- Logo et date -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="font-bold text-xl text-primary-600">OPay</div>
+            <div class="text-gray-500 text-sm">{{ transaction.timestamp|date:"d/m/Y H:i" }}</div>
+        </div>
+        
+        <!-- Statut et icône -->
+        <div class="text-center mb-6">
+            <div class="w-24 h-24 bg-{% if transaction.is_credit %}green{% else %}red{% endif %}-100 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                <i class="fas fa-{% if transaction.is_credit %}arrow-down{% else %}arrow-up{% endif %} text-{% if transaction.is_credit %}green{% else %}red{% endif %}-500 text-4xl success-icon"></i>
+                <div class="absolute inset-0 rounded-full bg-{% if transaction.is_credit %}green{% else %}red{% endif %}-200 opacity-50 animate-ping"></div>
+            </div>
+            <p class="text-gray-600 mb-2">{{ transaction.get_transaction_type_display }}</p>
+            <p class="text-3xl font-bold {% if transaction.is_credit %}text-green-600{% else %}text-red-600{% endif %} mb-3">
+                {% if transaction.is_credit %}+{% else %}-{% endif %}{{ transaction.amount }} FCFA
+            </p>
+            <span class="status-badge inline-block
+                {% if transaction.status == 'completed' %}bg-green-100 text-green-800
+                {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-800
+                {% elif transaction.status == 'failed' %}bg-red-100 text-red-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                <i class="fas {% if transaction.status == 'completed' %}fa-check-circle{% elif transaction.status == 'pending' %}fa-clock{% elif transaction.status == 'failed' %}fa-times-circle{% else %}fa-question-circle{% endif %} mr-1"></i>
+                {{ transaction.get_status_display }}
+            </span>
+        </div>
+        
+        <!-- Détails de la transaction -->
+        <div class="space-y-1 mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">Détails de la transaction</h2>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Type</span>
+                <span class="font-medium text-gray-800">{{ transaction.get_transaction_type_display }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Date</span>
+                <span class="font-medium text-gray-800">{{ transaction.timestamp|date:"d/m/Y H:i" }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Référence</span>
+                <span class="font-medium text-gray-800 break-all">{{ transaction.reference }}</span>
+            </div>
+            
+            <div class="transaction-detail">
+                <span class="text-gray-600">Statut</span>
+                <span class="status-badge 
+                    {% if transaction.status == 'completed' %}bg-green-100 text-green-800
+                    {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% elif transaction.status == 'failed' %}bg-red-100 text-red-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    <i class="fas {% if transaction.status == 'completed' %}fa-check-circle{% elif transaction.status == 'pending' %}fa-clock{% elif transaction.status == 'failed' %}fa-times-circle{% else %}fa-question-circle{% endif %} mr-1"></i>
+                    {{ transaction.get_status_display }}
+                </span>
+            </div>
+            
+            {% if transaction.description %}
+            <div class="transaction-detail">
+                <span class="text-gray-600">Description</span>
+                <span class="font-medium text-gray-800">{{ transaction.description }}</span>
+            </div>
+            {% endif %}
+            
+            {% if transaction.transaction_type == 'transfer_in' or transaction.transaction_type == 'transfer_out' %}
+            <div class="transaction-detail">
+                <span class="text-gray-600">
+                    {% if transaction.transaction_type == 'transfer_in' %}Expéditeur{% else %}Destinataire{% endif %}
+                </span>
+                <span class="font-medium text-gray-800">
+                    {% if transaction.transaction_type == 'transfer_in' %}
+                        {{ transaction.sender.get_full_name }}
+                    {% else %}
+                        {{ transaction.recipient.get_full_name }}
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
+            {% if transaction.transaction_type == 'bill_payment' %}
+            <div class="transaction-detail">
+                <span class="text-gray-600">Fournisseur</span>
+                <span class="font-medium text-gray-800">{{ transaction.bill_provider }}</span>
+            </div>
+            <div class="transaction-detail">
+                <span class="text-gray-600">Numéro de compte</span>
+                <span class="font-medium text-gray-800">{{ transaction.bill_account_number }}</span>
+            </div>
+            {% endif %}
+            
+            {% if transaction.transaction_type == 'mobile_recharge' %}
+            <div class="transaction-detail">
+                <span class="text-gray-600">Opérateur</span>
+                <span class="font-medium text-gray-800">{{ transaction.mobile_operator }}</span>
+            </div>
+            <div class="transaction-detail">
+                <span class="text-gray-600">Numéro</span>
+                <span class="font-medium text-gray-800">{{ transaction.mobile_number }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Message de confirmation -->
+        <div class="bg-{% if transaction.status == 'completed' %}green{% elif transaction.status == 'pending' %}yellow{% elif transaction.status == 'failed' %}red{% else %}gray{% endif %}-50 border-l-4 border-{% if transaction.status == 'completed' %}green{% elif transaction.status == 'pending' %}yellow{% elif transaction.status == 'failed' %}red{% else %}gray{% endif %}-500 p-4 rounded-md mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-{% if transaction.status == 'completed' %}info-circle text-green{% elif transaction.status == 'pending' %}clock text-yellow{% elif transaction.status == 'failed' %}exclamation-triangle text-red{% else %}info-circle text-gray{% endif %}-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-{% if transaction.status == 'completed' %}green{% elif transaction.status == 'pending' %}yellow{% elif transaction.status == 'failed' %}red{% else %}gray{% endif %}-700">
+                        {% if transaction.status == 'completed' %}
+                        Cette transaction a été traitée avec succès. Un reçu a été envoyé à votre adresse email.
+                    {% elif transaction.status == 'pending' %}
+                        Cette transaction est en cours de traitement. Vous serez notifié une fois qu'elle sera terminée.
+                    {% elif transaction.status == 'failed' %}
+                        Cette transaction a échoué. Veuillez réessayer ou contacter notre service client.
+                    {% else %}
+                        Le statut de cette transaction est actuellement inconnu.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 animate-fade-in animate-delay-3">
+    <a href="{% url 'transaction_history' %}" class="action-button px-4 py-3 bg-primary-600 text-white hover:bg-primary-700 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 border border-primary-700 flex items-center justify-center transition-all">
+        <i class="fas fa-history mr-2"></i> Historique
+    </a>
+    
+    <a href="{% url 'dashboard' %}" class="action-button px-4 py-3 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 border border-gray-300 flex items-center justify-center transition-all">
+        <i class="fas fa-home mr-2"></i> Retour à l'accueil
+    </a>
+</div>
+
+<!-- Options supplémentaires -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in animate-delay-4">
+    <button id="downloadReceiptBtn" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+        <i class="fas fa-download text-primary-600 text-xl mb-2"></i>
+        <span class="text-gray-800 font-medium">Télécharger reçu</span>
+    </button>
+    
+    <button id="shareBtn" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+        <i class="fas fa-share-alt text-primary-600 text-xl mb-2"></i>
+        <span class="text-gray-800 font-medium">Partager</span>
+    </button>
+    
+    <button id="reportBtn" class="flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+        <i class="fas fa-flag text-primary-600 text-xl mb-2"></i>
+        <span class="text-gray-800 font-medium">Signaler un problème</span>
+    </button>
+</div>
+
+<!-- Modal de signalement -->
+<div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Signaler un problème</h3>
+            <button id="closeReportBtn" class="text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <form>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Type de problème
+                </label>
+                <select class="form-select w-full">
+                    <option>Montant incorrect</option>
+                    <option>Transaction non reçue</option>
+                    <option>Double paiement</option>
+                    <option>Autre problème</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Description du problème
+                </label>
+                <textarea class="form-textarea w-full" rows="4" placeholder="Veuillez décrire le problème en détail..."></textarea>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancelReportBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 mr-2">
+                    Annuler
+                </button>
+                <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700">
+                    Envoyer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Éléments DOM
+    const shareBtn = document.getElementById('shareBtn');
+    const reportBtn = document.getElementById('reportBtn');
+    const reportModal = document.getElementById('reportModal');
+    const closeReportBtn = document.getElementById('closeReportBtn');
+    const cancelReportBtn = document.getElementById('cancelReportBtn');
+    const downloadReceiptBtn = document.getElementById('downloadReceiptBtn');
+    
+    // Effet de brillance pour le reçu
+    const receipt = document.querySelector('.receipt');
+    const cardShine = document.querySelector('.card-shine');
+    
+    if (receipt && cardShine) {
+        receipt.addEventListener('mousemove', function(e) {
+            const x = e.offsetX;
+            const y = e.offsetY;
+            const width = this.offsetWidth;
+            const height = this.offsetHeight;
+            
+            const xPercent = x / width * 100;
+            const yPercent = y / height * 100;
+            
+            cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+        });
+        
+        receipt.addEventListener('mouseleave', function() {
+            cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+        });
+    }
+    
+    // Bouton de téléchargement du reçu
+    if (downloadReceiptBtn) {
+        downloadReceiptBtn.addEventListener('click', function() {
+            // Ici, vous pouvez ajouter la logique pour télécharger le reçu
+            // Pour l'exemple, nous affichons simplement une alerte
+            alert('Le téléchargement du reçu sera disponible prochainement.');
+        });
+    }
+    
+    // Fonction pour partager la transaction
+    if (shareBtn) {
+        shareBtn.addEventListener('click', function() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Détail de transaction OPay',
+                    text: 'Voici le détail de ma transaction OPay',
+                    url: window.location.href,
+                })
+                .catch((error) => console.log('Erreur de partage', error));
+            } else {
+                // Copier l'URL dans le presse-papier si l'API Web Share n'est pas disponible
+                const tempInput = document.createElement('input');
+                document.body.appendChild(tempInput);
+                tempInput.value = window.location.href;
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                
+                // Afficher un message de confirmation
+                const originalText = shareBtn.innerHTML;
+                shareBtn.innerHTML = '<i class="fas fa-check text-primary-600 text-xl mb-2"></i><span class="text-gray-800 font-medium">URL copiée</span>';
+                setTimeout(() => {
+                    shareBtn.innerHTML = originalText;
+                }, 2000);
+            }
+        });
+    }
+    
+    // Gestion du modal de signalement
+    if (reportBtn && reportModal && closeReportBtn && cancelReportBtn) {
+        reportBtn.addEventListener('click', function() {
+            reportModal.classList.remove('hidden');
+        });
+        
+        closeReportBtn.addEventListener('click', function() {
+            reportModal.classList.add('hidden');
+        });
+        
+        cancelReportBtn.addEventListener('click', function() {
+            reportModal.classList.add('hidden');
+        });
+        
+        // Fermer le modal en cliquant en dehors
+        reportModal.addEventListener('click', function(e) {
+            if (e.target === reportModal) {
+                reportModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Animation pour le badge de statut
+    const statusBadge = document.querySelector('.status-badge');
+    if (statusBadge) {
+        setTimeout(() => {
+            statusBadge.classList.add('animate-pulse');
+            setTimeout(() => {
+                statusBadge.classList.remove('animate-pulse');
+            }, 2000);
+        }, 1000);
+    }
+    
+    // Amélioration de l'expérience mobile
+    if ('ontouchstart' in window) {
+        document.querySelectorAll('.action-button, button').forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            
+            button.addEventListener('touchend', function() {
+                this.style.transform = '';
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

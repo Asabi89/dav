@@ -1,0 +1,731 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Dépôt d'argent - OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Styles pour les cartes */
+    .card-shadow {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease, transform 0.2s ease;
+        border-radius: 1rem;
+    }
+    
+    .card-shadow:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Styles pour les champs de formulaire */
+    .input-with-icon {
+        position: relative;
+    }
+    
+    .input-with-icon input,
+    .input-with-icon select {
+        border: 2px solid #e5e7eb;
+        transition: border-color 0.2s ease;
+        width: 100%;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem 0.75rem 2.5rem;
+        font-size: 1rem;
+    }
+    
+    .input-with-icon input:focus,
+    .input-with-icon select:focus {
+        border-color: #0d9488;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+    }
+    
+    /* Styles pour les cartes d'information */
+    .info-card {
+        border-left: 4px solid #0d9488;
+        transition: transform 0.2s ease, background-color 0.2s ease;
+        border-radius: 0.5rem;
+    }
+    
+    .info-card:hover {
+        transform: translateX(5px);
+        background-color: #f9fafb;
+    }
+    
+    /* Styles pour le bouton de dépôt */
+    .btn-deposit {
+        background: linear-gradient(to right, #0d9488, #0f766e);
+        transition: all 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        color: white;
+        font-weight: 500;
+    }
+    
+    .btn-deposit:hover {
+        background: linear-gradient(to right, #0f766e, #115e59);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-deposit:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    /* Styles pour la carte de solde */
+    .balance-card {
+        background: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+        border: 1px solid #99f6e4;
+        position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .balance-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+    }
+    
+    /* Styles pour les champs de montant */
+    .amount-input::-webkit-outer-spin-button,
+    .amount-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    .amount-input {
+        -moz-appearance: textfield;
+    }
+    
+    /* Styles pour le sélecteur de banque */
+    .bank-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        appearance: none;
+    }
+    
+    /* Styles pour les cartes de méthode de paiement */
+    .method-card {
+        border: 2px solid #e5e7eb;
+        transition: all 0.2s ease;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        cursor: pointer;
+    }
+    
+    .method-card:hover:not(.opacity-50),
+    .method-card.selected {
+        border-color: #0d9488;
+        background-color: rgba(13, 148, 136, 0.05);
+        transform: translateY(-2px);
+    }
+    
+    /* Styles pour les boutons de montant rapide */
+    .quick-amount {
+        transition: all 0.2s ease;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border: 1px solid #e5e7eb;
+        background-color: #f9fafb;
+        cursor: pointer;
+    }
+    
+    .quick-amount:hover {
+        background-color: rgba(13, 148, 136, 0.1);
+        color: #0d9488;
+        border-color: #0d9488;
+    }
+    
+    .quick-amount.selected {
+        background-color: rgba(13, 148, 136, 0.2);
+        color: #0d9488;
+        border-color: #0d9488;
+        font-weight: 500;
+    }
+    
+    /* Animation pour le chargement */
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+    
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    /* Styles pour les transactions récentes */
+    .transaction-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .transaction-item:hover {
+        background-color: #f9fafb;
+        transform: translateX(3px);
+    }
+    
+    /* Styles pour le modal */
+    .modal {
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        transition: all 0.3s ease;
+    }
+    
+    .modal-content {
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transform: scale(0.95);
+        transition: transform 0.3s ease;
+    }
+    
+    .modal.show .modal-content {
+        transform: scale(1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- En-tête avec bouton retour et navigation rapide -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+        <div class="flex items-center mb-4 sm:mb-0">
+            <a href="{% url 'wallet_detail' %}" class="mr-4 text-gray-600 hover:text-primary-600 transition-colors">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800">Dépôt d'argent</h1>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{% url 'withdraw' %}" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-arrow-up mr-1"></i> Retrait
+            </a>
+            <a href="{% url 'transfer' %}" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-exchange-alt mr-1"></i> Transfert
+            </a>
+        </div>
+    </div>
+    
+    <!-- Solde actuel avec effet de brillance -->
+    <div class="balance-card shadow-sm mb-6 card-shadow">
+        <div class="balance-shine"></div>
+        <div class="text-center">
+            <p class="text-gray-600 mb-2 font-medium">Solde actuel</p>
+            <p class="text-3xl font-bold text-primary-700">{{ wallet.balance|floatformat:2 }} FCFA</p>
+        </div>
+    </div>
+    
+    <!-- Méthodes de dépôt -->
+    <div class="bg-white rounded-xl p-6 mb-6 card-shadow border-2 border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-credit-card text-primary-600 mr-2"></i> Choisir une méthode de dépôt
+        </h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="method-card flex flex-col items-center text-center selected" data-method="bank">
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-2">
+                    <i class="fas fa-university text-blue-600"></i>
+                </div>
+                <h3 class="font-medium text-gray-800">Compte bancaire</h3>
+                <p class="text-xs text-gray-500 mt-1">Transférer depuis votre compte bancaire</p>
+            </div>
+            
+            <div class="method-card flex flex-col items-center text-center opacity-50" data-method="card">
+                <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                    <i class="fas fa-credit-card text-green-600"></i>
+                </div>
+                <h3 class="font-medium text-gray-800">Carte bancaire</h3>
+                <p class="text-xs text-gray-500 mt-1">Payer avec votre carte bancaire</p>
+                <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded mt-2">Bientôt disponible</span>
+            </div>
+            
+            <div class="method-card flex flex-col items-center text-center opacity-50" data-method="mobile">
+                <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-2">
+                    <i class="fas fa-mobile-alt text-purple-600"></i>
+                </div>
+                <h3 class="font-medium text-gray-800">Mobile Money</h3>
+                <p class="text-xs text-gray-500 mt-1">Utiliser votre compte Mobile Money</p>
+                <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded mt-2">Bientôt disponible</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Formulaire de dépôt -->
+    <div class="bg-white rounded-xl p-6 mb-6 card-shadow border-2 border-gray-100" id="bankDepositForm">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-arrow-down text-primary-600 mr-2"></i> Dépôt depuis un compte bancaire
+        </h2>
+        
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Montant -->
+            <div class="input-with-icon">
+                <label for="id_amount" class="block text-sm font-medium text-gray-700 mb-2">
+                    Montant à déposer <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-money-bill-wave text-gray-400"></i>
+                    </div>
+                    <input type="number" name="amount" id="id_amount" class="form-input pl-10 pr-16 py-3 rounded-lg amount-input" 
+                           placeholder="0.00" min="500" step="100" inputmode="decimal" required>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 font-medium">FCFA</span>
+                    </div>
+                </div>
+                {% if form.amount.errors %}
+                <p class="text-red-600 text-sm mt-1">
+                    <i class="fas fa-exclamation-circle mr-1"></i>{{ form.amount.errors.0 }}
+                </p>
+                {% else %}
+                <p class="text-xs text-gray-500 mt-1">
+                    <i class="fas fa-info-circle mr-1"></i> Minimum: 500 FCFA
+                </p>
+                {% endif %}
+                
+                <!-- Boutons de montant rapide -->
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button type="button" class="quick-amount" data-amount="1000">1 000 FCFA</button>
+                    <button type="button" class="quick-amount" data-amount="5000">5 000 FCFA</button>
+                    <button type="button" class="quick-amount" data-amount="10000">10 000 FCFA</button>
+                    <button type="button" class="quick-amount" data-amount="25000">25 000 FCFA</button>
+                </div>
+            </div>
+            
+            <!-- Compte bancaire -->
+            <div class="input-with-icon">
+                <label for="id_bank_account" class="block text-sm font-medium text-gray-700 mb-2">
+                    Compte bancaire source <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-university text-gray-400"></i>
+                    </div>
+                    <select name="bank_account" id="id_bank_account" class="form-select pl-10 py-3 rounded-lg bank-select w-full" required>
+                        {% for account in form.bank_account.field.queryset %}
+                            <option value="{{ account.id }}">{{ account.bank_name }} - {{ account.mask_account_number }}</option>
+                        {% empty %}
+                            <option value="" disabled selected>Aucun compte bancaire disponible</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if form.bank_account.errors %}
+                <p class="text-red-600 text-sm mt-1">
+                    <i class="fas fa-exclamation-circle mr-1"></i>{{ form.bank_account.errors.0 }}
+                </p>
+                {% elif not form.bank_account.field.queryset.exists %}
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-2 rounded-md">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                Vous n'avez pas encore ajouté de compte bancaire vérifié.
+                                <a href="{% url 'add_bank_account' %}" class="font-medium text-primary-600 hover:text-primary-700 underline">
+                                    Ajouter un compte
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Description optionnelle -->
+            <div class="input-with-icon">
+                <label for="id_description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description (optionnel)
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-align-left text-gray-400"></i>
+                    </div>
+                    <input type="text" id="id_description" name="description" class="form-input pl-10 py-3 rounded-lg w-full" placeholder="Ex: Dépôt mensuel">
+                </div>
+                {% if form.description.errors %}
+                <p class="text-red-600 text-sm mt-1">
+                    <i class="fas fa-exclamation-circle mr-1"></i>{{ form.description.errors.0 }}
+                </p>
+                {% endif %}
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="submit" 
+                        class="btn-deposit w-full sm:w-auto px-6 py-3 text-white rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center"
+                        {% if not form.bank_account.field.queryset.exists %}disabled{% endif %}>
+                    <i class="fas fa-arrow-down mr-2"></i> Effectuer le dépôt
+                </button>
+                <a href="{% url 'wallet_detail' %}" 
+                   class="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-center transition-all">
+                    Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Informations sur les dépôts -->
+    <div class="bg-white rounded-xl p-6 mb-6 card-shadow border-2 border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-info-circle text-primary-600 mr-2"></i> Informations sur les dépôts
+        </h2>
+        
+        <div class="space-y-4">
+            <div class="info-card flex items-start p-3 rounded-lg hover:bg-gray-50 transition-all">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-clock text-primary-600 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Délai de traitement</h3>
+                    <p class="text-sm text-gray-500">Les dépôts sont généralement traités sous 24 heures ouvrables. Les dépôts par carte bancaire sont instantanés.</p>
+                </div>
+            </div>
+            
+            <div class="info-card flex items-start p-3 rounded-lg hover:bg-gray-50 transition-all">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-money-bill-wave text-primary-600 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Montant minimum</h3>
+                    <p class="text-sm text-gray-500">Le montant minimum pour un dépôt est de 500 FCFA.</p>
+                </div>
+            </div>
+            
+            <div class="info-card flex items-start p-3 rounded-lg hover:bg-gray-50 transition-all">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-percentage text-primary-600 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Frais</h3>
+                    <p class="text-sm text-gray-500">Les dépôts depuis un compte bancaire sont gratuits. Des frais de 1% s'appliquent pour les dépôts par carte bancaire.</p>
+                </div>
+            </div>
+            
+            <div class="info-card flex items-start p-3 rounded-lg hover:bg-gray-50 transition-all">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas fa-shield-alt text-primary-600 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Sécurité</h3>
+                    <p class="text-sm text-gray-500">Toutes les transactions sont sécurisées et cryptées selon les normes bancaires internationales.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Historique des dépôts récents -->
+    <div class="bg-white rounded-xl p-6 mb-6 card-shadow border-2 border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-history text-primary-600 mr-2"></i> Dépôts récents
+        </h2>
+        
+        <!-- Affichage des dépôts récents avec une solution alternative -->
+        {% if recent_deposits %}
+            <div class="space-y-3">
+                {% for deposit in recent_deposits %}
+                    <div class="transaction-item flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-arrow-down text-green-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-800">{{ deposit.description|default:"Dépôt" }}</p>
+                                <p class="text-xs text-gray-500">{{ deposit.timestamp|date:"d/m/Y H:i" }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-green-600">+{{ deposit.amount|floatformat:2 }} FCFA</p>
+                            <a href="{% url 'transaction_detail' deposit.id %}" class="text-xs text-primary-600 hover:underline">Détails</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4 text-center">
+                <a href="{% url 'transaction_history' %}?type=deposit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    Voir tous les dépôts <i class="fas fa-chevron-right ml-1"></i>
+                </a>
+            </div>
+        {% else %}
+            <div class="text-center py-6 bg-gray-50 rounded-lg">
+                <i class="fas fa-arrow-down text-gray-400 text-3xl mb-2"></i>
+                <p class="text-gray-500">Aucun dépôt récent</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Modal pour confirmation de dépôt -->
+    <div id="confirmModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="modal-content bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Confirmer le dépôt</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">Vous êtes sur le point d'effectuer un dépôt de <span id="confirmAmount" class="font-bold text-primary-600"></span> FCFA sur votre compte OPay.</p>
+                <p class="text-gray-700">Veuillez confirmer cette opération.</p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelDepositBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300">
+                    Annuler
+                </button>
+                <button id="confirmDepositBtn" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700">
+                    Confirmer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments du DOM
+        const methodCards = document.querySelectorAll('.method-card');
+        const bankDepositForm = document.getElementById('bankDepositForm');
+        const depositForm = document.querySelector('form');
+        const amountInput = document.getElementById('id_amount');
+        const quickAmountBtns = document.querySelectorAll('.quick-amount');
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmAmountSpan = document.getElementById('confirmAmount');
+        const confirmDepositBtn = document.getElementById('confirmDepositBtn');
+        const cancelDepositBtn = document.getElementById('cancelDepositBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const balanceCard = document.querySelector('.balance-card');
+        const balanceShine = document.querySelector('.balance-shine');
+        
+        // Effet de brillance pour le solde
+        if (balanceCard && balanceShine) {
+            balanceCard.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                balanceShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            balanceCard.addEventListener('mouseleave', function() {
+                balanceShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+        
+        // Sélection de la méthode de dépôt
+        methodCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const method = this.getAttribute('data-method');
+                
+                // Ne rien faire si la méthode est désactivée
+                if (this.classList.contains('opacity-50')) {
+                    return;
+                }
+                
+                // Retirer la classe selected de toutes les cartes
+                methodCards.forEach(c => c.classList.remove('selected'));
+                
+                // Ajouter la classe selected à la carte cliquée
+                this.classList.add('selected');
+                
+                // Afficher le formulaire correspondant
+                if (method === 'bank') {
+                    bankDepositForm.style.display = 'block';
+                } else {
+                    // Afficher un message pour les méthodes non disponibles
+                    alert('Cette méthode de dépôt sera bientôt disponible.');
+                }
+            });
+        });
+        
+        // Gestion des boutons de montant rapide
+        quickAmountBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const amount = this.getAttribute('data-amount');
+                
+                // Mettre à jour le champ de montant
+                if (amountInput) {
+                    amountInput.value = amount;
+                }
+                
+                                // Mettre à jour l'apparence des boutons
+                                quickAmountBtns.forEach(b => b.classList.remove('selected'));
+                                this.classList.add('selected');
+                            });
+                        });
+                        
+                        // Validation du formulaire
+                        if (depositForm) {
+                            depositForm.addEventListener('submit', function(e) {
+                                e.preventDefault();
+                                
+                                const amount = parseFloat(amountInput.value);
+                                
+                                // Vérifier si le montant est valide
+                                if (isNaN(amount) || amount <= 0) {
+                                    alert('Veuillez entrer un montant valide.');
+                                    return;
+                                }
+                                
+                                // Vérifier le montant minimum
+                                if (amount < 500) {
+                                    alert('Le montant minimum pour un dépôt est de 500 FCFA.');
+                                    return;
+                                }
+                                
+                                // Afficher le modal de confirmation
+                                confirmAmountSpan.textContent = amount.toLocaleString('fr-FR');
+                                confirmModal.classList.remove('hidden');
+                                confirmModal.classList.add('show');
+                            });
+                        }
+                        
+                        // Gestion du modal de confirmation
+                        if (confirmDepositBtn) {
+                            confirmDepositBtn.addEventListener('click', function() {
+                                // Soumettre le formulaire
+                                confirmModal.classList.add('hidden');
+                                confirmModal.classList.remove('show');
+                                
+                                // Désactiver le bouton pour éviter les soumissions multiples
+                                const submitButton = depositForm.querySelector('button[type="submit"]');
+                                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Traitement en cours...';
+                                submitButton.disabled = true;
+                                
+                                // Soumettre le formulaire
+                                depositForm.submit();
+                            });
+                        }
+                        
+                        if (cancelDepositBtn) {
+                            cancelDepositBtn.addEventListener('click', function() {
+                                confirmModal.classList.add('hidden');
+                                confirmModal.classList.remove('show');
+                            });
+                        }
+                        
+                        if (closeModalBtn) {
+                            closeModalBtn.addEventListener('click', function() {
+                                confirmModal.classList.add('hidden');
+                                confirmModal.classList.remove('show');
+                            });
+                        }
+                        
+                        // Fermer le modal en cliquant en dehors
+                        confirmModal.addEventListener('click', function(e) {
+                            if (e.target === confirmModal) {
+                                confirmModal.classList.add('hidden');
+                                confirmModal.classList.remove('show');
+                            }
+                        });
+                        
+                        // Animation des cartes
+                        const cards = document.querySelectorAll('.card-shadow');
+                        cards.forEach(card => {
+                            card.addEventListener('mouseenter', function() {
+                                this.style.transform = 'translateY(-5px)';
+                            });
+                            
+                            card.addEventListener('mouseleave', function() {
+                                this.style.transform = 'translateY(0)';
+                            });
+                        });
+                        
+                        // Animation des cartes d'information
+                        const infoCards = document.querySelectorAll('.info-card');
+                        infoCards.forEach(card => {
+                            card.addEventListener('mouseenter', function() {
+                                this.classList.add('bg-gray-50');
+                            });
+                            
+                            card.addEventListener('mouseleave', function() {
+                                this.classList.remove('bg-gray-50');
+                            });
+                        });
+                        
+                        // Amélioration de l'expérience mobile
+                        if ('ontouchstart' in window) {
+                            document.querySelectorAll('.action-button, .quick-amount, .method-card').forEach(button => {
+                                button.addEventListener('touchstart', function() {
+                                    if (!this.classList.contains('opacity-50') && !this.disabled) {
+                                        this.style.transform = 'scale(0.98)';
+                                    }
+                                });
+                                
+                                button.addEventListener('touchend', function() {
+                                    if (!this.classList.contains('opacity-50') && !this.disabled) {
+                                        this.style.transform = '';
+                                    }
+                                });
+                            });
+                        }
+                        
+                        // Formatage du montant en temps réel
+                        if (amountInput) {
+                            amountInput.addEventListener('input', function() {
+                                // Supprimer tout sauf les chiffres et le point
+                                let value = this.value.replace(/[^\d.]/g, '');
+                                
+                                // S'assurer qu'il n'y a qu'un seul point décimal
+                                const parts = value.split('.');
+                                if (parts.length > 2) {
+                                    value = parts[0] + '.' + parts.slice(1).join('');
+                                }
+                                
+                                // Limiter à 2 décimales
+                                if (parts.length > 1 && parts[1].length > 2) {
+                                    value = parts[0] + '.' + parts[1].substring(0, 2);
+                                }
+                                
+                                // Mettre à jour la valeur
+                                this.value = value;
+                                
+                                // Réinitialiser la sélection des boutons rapides
+                                if (value) {
+                                    const amount = parseFloat(value);
+                                    let matchFound = false;
+                                    
+                                    quickAmountBtns.forEach(btn => {
+                                        const btnAmount = parseFloat(btn.getAttribute('data-amount'));
+                                        if (amount === btnAmount) {
+                                            btn.classList.add('selected');
+                                            matchFound = true;
+                                        } else {
+                                            btn.classList.remove('selected');
+                                        }
+                                    });
+                                    
+                                    if (!matchFound) {
+                                        quickAmountBtns.forEach(btn => btn.classList.remove('selected'));
+                                    }
+                                } else {
+                                    quickAmountBtns.forEach(btn => btn.classList.remove('selected'));
+                                }
+                            });
+                        }
+                    });
+                </script>
+                {% endblock %}
+                

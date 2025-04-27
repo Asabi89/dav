@@ -1,0 +1,523 @@
+{% extends 'base.html' %}
+
+{% block title %}Fournisseurs - {{ category.name }} | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation pour les cartes de fournisseurs */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .provider-card {
+        animation: fadeIn 0.3s ease-out forwards;
+        animation-delay: calc(var(--animation-order) * 0.05s);
+        opacity: 0;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .provider-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Badge pour les fournisseurs populaires */
+    .popular-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #0d9488;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 0.75rem;
+    }
+    
+    /* Styles pour la barre de recherche */
+    .search-container {
+        position: relative;
+    }
+    
+    .search-input {
+        padding-left: 2.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus + .search-icon {
+        color: #0d9488;
+    }
+    
+    /* Styles pour les filtres */
+    .filter-button {
+        transition: all 0.2s ease;
+    }
+    
+    .filter-button.active {
+        background-color: #0d9488;
+        color: white;
+        border-color: #0d9488;
+    }
+    
+    /* Animation pour les messages */
+    .message-animation {
+        animation: slideIn 0.5s ease-out forwards;
+    }
+    
+    @keyframes slideIn {
+        0% {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+        100% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    /* Styles pour le logo du fournisseur */
+    .provider-logo {
+        width: 64px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        padding: 8px;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .provider-card:hover .provider-logo {
+        transform: scale(1.05);
+    }
+    
+    /* Styles pour les fournisseurs favoris */
+    .favorite-button {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+    }
+    
+    .provider-card:hover .favorite-button {
+        opacity: 1;
+    }
+    
+    .favorite-button.active {
+        color: #f59e0b;
+    }
+    
+    .favorite-button:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Styles pour l'état vide */
+    .empty-state {
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        border-radius: 1rem;
+        padding: 3rem 2rem;
+        text-align: center;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-5xl">
+    <!-- En-tête avec navigation et description -->
+    <div class="mb-6">
+        <div class="flex items-center mb-2">
+            <a href="{% url 'bill_categories' %}" class="text-primary-600 mr-2 hover:text-primary-700 transition-colors">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800">{{ category.name }}</h1>
+        </div>
+        <p class="text-gray-600">Sélectionnez un fournisseur pour continuer votre paiement</p>
+    </div>
+    
+    <!-- Messages d'alerte -->
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-xl message-animation {% if message.tags == 'error' %}bg-red-100 text-red-700 border border-red-200{% elif message.tags == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-blue-100 text-blue-700 border border-blue-200{% endif %}">
+            <div class="flex items-center">
+                {% if message.tags == 'error' %}
+                    <i class="fas fa-exclamation-circle mr-2 text-red-500"></i>
+                {% elif message.tags == 'success' %}
+                    <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                {% else %}
+                    <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                {% endif %}
+                {{ message }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Barre de recherche et filtres -->
+    <div class="mb-6 flex flex-col sm:flex-row gap-4">
+        <div class="search-container flex-grow">
+            <input type="text" id="providerSearch" class="search-input w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Rechercher un fournisseur...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        
+        <div class="flex space-x-2">
+            <button class="filter-button px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active" data-filter="all">
+                Tous
+            </button>
+            <button class="filter-button px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50" data-filter="popular">
+                Populaires
+            </button>
+            <button class="filter-button px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50" data-filter="favorite">
+                Favoris
+            </button>
+        </div>
+    </div>
+    
+    <!-- Grille de fournisseurs -->
+    <div id="providersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {% for provider in providers %}
+        <a href="{% url 'bill_payment_provider' provider.id %}" class="provider-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:border-primary-500 transition-all" style="--animation-order: {{ forloop.counter }}">
+            <!-- Bouton favori -->
+            <div class="favorite-button" data-provider-id="{{ provider.id }}">
+                <i class="{% if provider.id in favorite_providers %}fas text-yellow-500{% else %}far{% endif %} fa-star"></i>
+            </div>
+            
+            <!-- Badge populaire (pour certains fournisseurs) -->
+            {% if provider.is_popular %}
+            <div class="popular-badge">
+                <i class="fas fa-fire-alt mr-1"></i> Populaire
+            </div>
+            {% endif %}
+            
+            <!-- Effet de brillance -->
+            <div class="card-shine"></div>
+            
+            <div class="p-4 flex flex-col items-center text-center">
+                <!-- Logo du fournisseur -->
+                <div class="provider-logo">
+                    {% if provider.logo %}
+                    <img src="{{ provider.logo.url }}" alt="{{ provider.name }}" class="max-h-full max-w-full object-contain">
+                    {% else %}
+                    <i class="fas fa-building text-primary-600 text-2xl"></i>
+                    {% endif %}
+                </div>
+                
+                <!-- Nom et description -->
+                <h3 class="font-medium text-gray-800 mb-1">{{ provider.name }}</h3>
+                {% if provider.description %}
+                <p class="text-xs text-gray-500">{{ provider.description|truncatechars:40 }}</p>
+                {% endif %}
+                
+                <!-- Indicateur de frais (si applicable) -->
+                {% if provider.has_fees %}
+                <div class="mt-2 text-xs text-gray-500 flex items-center">
+                    <i class="fas fa-info-circle mr-1"></i> Frais: {{ provider.fee_amount }} FCFA
+                </div>
+                {% endif %}
+            </div>
+        </a>
+        {% empty %}
+        <div class="col-span-full empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-search text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-800 mb-2">Aucun fournisseur disponible</h3>
+            <p class="text-gray-500 mb-6">Nous n'avons pas trouvé de fournisseurs dans cette catégorie.</p>
+            <a href="{% url 'bill_categories' %}" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 transition-all">
+                Retour aux catégories
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- État vide pour la recherche (initialement caché) -->
+    <div id="emptySearchState" class="hidden col-span-full empty-state mt-6">
+        <div class="empty-icon">
+            <i class="fas fa-search text-gray-400 text-3xl"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-800 mb-2">Aucun résultat trouvé</h3>
+        <p class="text-gray-500 mb-4">Nous n'avons pas trouvé de fournisseurs correspondant à votre recherche.</p>
+        <button id="clearSearchBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-all">
+            Effacer la recherche
+        </button>
+    </div>
+    
+    <!-- Fournisseurs fréquemment utilisés (si disponible) -->
+    {% if frequent_providers %}
+    <div class="mt-10">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Fournisseurs fréquemment utilisés</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {% for provider in frequent_providers %}
+            <a href="{% url 'bill_payment_provider' provider.id %}" class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:border-primary-500 transition-all p-3 flex items-center">
+                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                    {% if provider.logo %}
+                    <img src="{{ provider.logo.url }}" alt="{{ provider.name }}" class="max-h-full max-w-full object-contain">
+                    {% else %}
+                    <i class="fas fa-building text-primary-600"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-800 text-sm">{{ provider.name }}</h3>
+                    <p class="text-xs text-gray-500">{{ provider.category.name }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Aide et support -->
+    <div class="mt-10 bg-gray-50 rounded-xl p-4 border border-gray-200">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 mr-3">
+                <i class="fas fa-question-circle text-primary-600 text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-md font-semibold text-gray-800 mb-2">Besoin d'aide ?</h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    Si vous ne trouvez pas le fournisseur que vous recherchez ou si vous avez des questions sur le paiement de factures, notre équipe de support est disponible pour vous aider.
+                </p>
+                <a href="{% url 'contact' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center">
+                    Contacter le support <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments DOM
+        const providerSearch = document.getElementById('providerSearch');
+        const providersGrid = document.getElementById('providersGrid');
+        const providerCards = document.querySelectorAll('.provider-card');
+        const filterButtons = document.querySelectorAll('.filter-button');
+        const emptySearchState = document.getElementById('emptySearchState');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const favoriteButtons = document.querySelectorAll('.favorite-button');
+        
+        // Fonction pour filtrer les fournisseurs
+        function filterProviders() {
+            const searchTerm = providerSearch.value.toLowerCase();
+            const activeFilter = document.querySelector('.filter-button.active').getAttribute('data-filter');
+            
+            let visibleCount = 0;
+            
+            providerCards.forEach(card => {
+                const providerName = card.querySelector('h3').textContent.toLowerCase();
+                const providerDescription = card.querySelector('p') ? card.querySelector('p').textContent.toLowerCase() : '';
+                const isPopular = card.querySelector('.popular-badge') !== null;
+                const isFavorite = card.querySelector('.favorite-button i').classList.contains('fas');
+                
+                // Vérifier si le fournisseur correspond aux critères de recherche et de filtre
+                const matchesSearch = providerName.includes(searchTerm) || providerDescription.includes(searchTerm);
+                const matchesFilter = 
+                    (activeFilter === 'all') || 
+                    (activeFilter === 'popular' && isPopular) || 
+                    (activeFilter === 'favorite' && isFavorite);
+                
+                if (matchesSearch && matchesFilter) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Afficher l'état vide si aucun résultat
+            if (visibleCount === 0) {
+                emptySearchState.classList.remove('hidden');
+            } else {
+                emptySearchState.classList.add('hidden');
+            }
+        }
+        
+        // Écouteurs d'événements pour la recherche
+        if (providerSearch) {
+            providerSearch.addEventListener('input', filterProviders);
+        }
+        
+        // Écouteurs d'événements pour les filtres
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Mettre à jour l'état actif
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Appliquer le filtre
+                filterProviders();
+            });
+        });
+        
+        // Écouteur pour le bouton d'effacement de recherche
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', function() {
+                providerSearch.value = '';
+                filterProviders();
+                providerSearch.focus();
+            });
+        }
+        
+        // Gestion des favoris
+        favoriteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const providerId = this.getAttribute('data-provider-id');
+                const starIcon = this.querySelector('i');
+                
+                // Basculer l'état favori
+                if (starIcon.classList.contains('fas')) {
+                    starIcon.classList.remove('fas', 'text-yellow-500');
+                    starIcon.classList.add('far');
+                    
+                    // Envoyer une requête pour supprimer des favoris
+                    fetch(`/api/providers/${providerId}/favorite/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } else {
+                    starIcon.classList.remove('far');
+                    starIcon.classList.add('fas', 'text-yellow-500');
+                    
+                    // Envoyer une requête pour ajouter aux favoris
+                    fetch(`/api/providers/${providerId}/favorite/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Fonction pour obtenir un cookie (pour CSRF)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Effet de brillance pour les cartes
+        providerCards.forEach(card => {
+            const cardShine = card.querySelector('.card-shine');
+            
+            if (cardShine) {
+                card.addEventListener('mousemove', function(e) {
+                    const x = e.offsetX;
+                    const y = e.offsetY;
+                    const width = this.offsetWidth;
+                    const height = this.offsetHeight;
+                    
+                    const xPercent = x / width * 100;
+                    const yPercent = y / height * 100;
+                    
+                    cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+                });
+            }
+        });
+        
+        // Animation d'entrée séquentielle pour les cartes
+        providerCards.forEach((card, index) => {
+            card.style.setProperty('--animation-order', index);
+        });
+        
+        // Amélioration de l'expérience mobile
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.provider-card, .filter-button').forEach(element => {
+                element.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                element.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
+   

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}Sécurité | OPay{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Paramètres de sécurité</h1>
+        <p class="text-gray-600">Gérez vos paramètres de sécurité et protégez votre compte</p>
+    </div>
+    
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-xl {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Changer le code PIN -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-300 mb-6">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-key text-primary-500 mr-2"></i> Code PIN
+            </h2>
+            <p class="text-gray-600 text-sm mb-4">Votre code PIN est utilisé pour sécuriser les transactions et les opérations sensibles.</p>
+            
+            <form method="post" action="{% url 'security' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_pin">
+                
+                <div class="mb-4">
+                    <label for="id_pin_code" class="block text-sm font-medium text-gray-700 mb-1">Nouveau code PIN (4 chiffres)</label>
+                    <input type="password" name="pin_code" id="id_pin_code" maxlength="4" pattern="[0-9]{4}" required
+                        class="w-full px-4 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Entrez votre nouveau code PIN">
+                    <p class="text-xs text-gray-500 mt-1">Utilisez uniquement des chiffres (0-9)</p>
+                </div>
+                
+                <button type="submit" class="px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 border border-primary-700 w-full">
+                    <i class="fas fa-save mr-2"></i> Mettre à jour le code PIN
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Questions de sécurité -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-300 mb-6">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-question-circle text-primary-500 mr-2"></i> Questions de sécurité
+            </h2>
+            <p class="text-gray-600 text-sm mb-4">Les questions de sécurité vous aident à récupérer votre compte en cas d'oubli de mot de passe.</p>
+            
+            {% if security_questions %}
+            <div class="mb-6">
+                <h3 class="text-md font-medium mb-3">Vos questions actuelles</h3>
+                <ul class="space-y-3">
+                    {% for question in security_questions %}
+                    <li class="p-4 bg-gray-50 rounded-lg flex justify-between items-center border border-gray-200">
+                        <div>
+                            <p class="font-medium text-gray-800">{{ question.question }}</p>
+                            <p class="text-gray-500 text-sm">Réponse: ••••••••</p>
+                        </div>
+                        <form method="post" action="{% url 'security' %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_question">
+                            <input type="hidden" name="question_id" value="{{ question.id }}">
+                            <button type="submit" class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <form method="post" action="{% url 'security' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_question">
+                
+                <div class="mb-4">
+                    <label for="id_question" class="block text-sm font-medium text-gray-700 mb-1">Question</label>
+                    <input type="text" name="question" id="id_question" required 
+                        class="w-full px-4 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Ex: Quel est le nom de votre premier animal de compagnie?">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="id_answer" class="block text-sm font-medium text-gray-700 mb-1">Réponse</label>
+                    <input type="text" name="answer" id="id_answer" required 
+                        class="w-full px-4 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Votre réponse">
+                </div>
+                
+                <button type="submit" class="px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 border border-primary-700 w-full">
+                    <i class="fas fa-plus mr-2"></i> Ajouter une question
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Authentification à deux facteurs -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-300 mb-6">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-shield-alt text-primary-500 mr-2"></i> Authentification à deux facteurs
+            </h2>
+            <p class="text-gray-600 text-sm mb-4">Ajoutez une couche de sécurité supplémentaire à votre compte.</p>
+            
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+                <div>
+                    <p class="font-medium text-gray-800">SMS de vérification</p>
+                    <p class="text-gray-500 text-sm">Recevez un code par SMS lors de la connexion</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" value="" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+    
+   <!-- Activité récente -->
+<div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-300">
+    <div class="p-6">
+        <h2 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-history text-primary-500 mr-2"></i> Activité récente
+        </h2>
+        <p class="text-gray-600 text-sm mb-4">Consultez les dernières activités sur votre compte.</p>
+        
+        <div class="space-y-3">
+            {% if recent_activities %}
+                {% for activity in recent_activities %}
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 rounded-full 
+                                {% if activity.activity_type == 'login' %}bg-green-100
+                                {% elif activity.activity_type == 'profile_update' %}bg-blue-100
+                                {% elif activity.activity_type == 'pin_change' %}bg-yellow-100
+                                {% elif activity.activity_type == 'security_update' %}bg-purple-100
+                                {% else %}bg-gray-100{% endif %} 
+                                flex items-center justify-center">
+                                
+                                {% if activity.activity_type == 'login' %}
+                                    <i class="fas fa-sign-in-alt text-green-600"></i>
+                                {% elif activity.activity_type == 'logout' %}
+                                    <i class="fas fa-sign-out-alt text-red-600"></i>
+                                {% elif activity.activity_type == 'profile_update' %}
+                                    <i class="fas fa-user-edit text-blue-600"></i>
+                                {% elif activity.activity_type == 'pin_change' %}
+                                    <i class="fas fa-key text-yellow-600"></i>
+                                {% elif activity.activity_type == 'security_update' %}
+                                    <i class="fas fa-shield-alt text-purple-600"></i>
+                                {% else %}
+                                    <i class="fas fa-info-circle text-gray-600"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-800">{{ activity.description }}</p>
+                                <p class="text-gray-500 text-sm">
+                                    IP: {{ activity.ip_address|default:"Non disponible" }}
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">{{ activity.timestamp|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="p-4 bg-gray-50 rounded-lg text-center">
+                    <p class="text-gray-500">Aucune activité récente à afficher</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

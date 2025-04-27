@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %}Historique des transactions - OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Styles pour les cartes de transaction */
+    .transaction-card {
+        transition: all 0.2s ease-in-out;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .transaction-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Correction pour éviter le débordement du contenu */
+    .transaction-details {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    
+    .transaction-info {
+        flex: 1;
+        min-width: 0; /* Important pour éviter le débordement */
+    }
+    
+    .transaction-description {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    
+    /* Styles pour les badges de statut */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+    
+    /* Styles pour les filtres */
+    .filter-section {
+        transition: all 0.3s ease;
+    }
+    
+    /* Styles pour les boutons d'action */
+    .action-button {
+        transition: all 0.3s ease;
+    }
+    
+    /* Styles pour la pagination */
+    .pagination-link {
+        transition: all 0.2s ease;
+    }
+    
+    /* Amélioration responsive */
+    @media (max-width: 640px) {
+        .transaction-details {
+            flex-direction: column;
+        }
+        
+        .transaction-amount {
+            margin-top: 0.5rem;
+            align-self: flex-start;
+            width: 100%;
+        }
+        
+        .stats-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Correction pour les statistiques */
+    .stats-card {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- En-tête avec titre -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 px-2">
+        <h1 class="text-2xl font-bold text-gray-800">Historique des transactions</h1>
+    </div>
+
+    <!-- Filtres -->
+    <div class="bg-white rounded-xl shadow-sm p-5 mb-6 filter-section">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-filter text-primary-600 mr-2"></i> Filtres
+            </h2>
+        </div>
+        
+        <form method="get" class="space-y-4">
+            <!-- Filtres de base -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700 mb-2">Type de transaction</label>
+                    <select name="type" id="type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">Tous les types</option>
+                        {% for type_code, type_label in transaction_types %}
+                        <option value="{{ type_code }}" {% if selected_type == type_code %}selected{% endif %}>{{ type_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Date de début</label>
+                    <input type="date" name="start_date" id="start_date" value="{{ start_date }}" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">Date de fin</label>
+                    <input type="date" name="end_date" id="end_date" value="{{ end_date }}" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+            </div>
+            
+            <!-- Filtres supplémentaires -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+                    <select name="status" id="status" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">Tous les statuts</option>
+                        <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Complété</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>En attente</option>
+                        <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Échoué</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="min_amount" class="block text-sm font-medium text-gray-700 mb-2">Montant minimum</label>
+                    <input type="number" name="min_amount" id="min_amount" value="{{ request.GET.min_amount }}" placeholder="0" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="max_amount" class="block text-sm font-medium text-gray-700 mb-2">Montant maximum</label>
+                    <input type="number" name="max_amount" id="max_amount" value="{{ request.GET.max_amount }}" placeholder="Illimité" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2">
+                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <button type="submit" class="action-button w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <i class="fas fa-filter mr-2"></i> Filtrer
+                    </button>
+                    
+                    <a href="{% url 'transaction_history' %}" class="action-button w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-center">
+                        <i class="fas fa-times mr-2"></i> Réinitialiser
+                    </a>
+                </div>
+                
+                <a href="{% url 'export_transactions' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="action-button w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-center">
+                    <i class="fas fa-download mr-2"></i> Exporter CSV
+                </a>
+            </div>
+        </form>
+    </div>
+    <!-- Statistiques des transactions -->
+    {% if transactions %}
+    <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-chart-bar text-primary-600 mr-2"></i> Résumé des transactions
+        </h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-green-50 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Total des entrées</p>
+                        <p class="text-xl font-bold text-green-600">{{ total_credit|default:"0" }} FCFA</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <i class="fas fa-arrow-down text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-red-50 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Total des sorties</p>
+                        <p class="text-xl font-bold text-red-600">{{ total_debit|default:"0" }} FCFA</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                        <i class="fas fa-arrow-up text-red-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Nombre de transactions</p>
+                        <p class="text-xl font-bold text-blue-600">{{ transactions.paginator.count }}</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-exchange-alt text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-purple-50 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Solde net</p>
+                        <p class="text-xl font-bold {% if net_balance >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ net_balance|default:"0" }} FCFA
+                        </p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                        <i class="fas fa-calculator text-purple-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Période et informations supplémentaires -->
+        <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+            <div class="flex flex-wrap justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-calendar-alt text-gray-500 mr-2"></i>
+                    <span class="text-sm text-gray-600">Période: 
+                        <strong>{{ start_date|default:"Toutes dates" }}</strong> à <strong>{{ end_date|default:"Aujourd'hui" }}</strong>
+                    </span>
+                </div>
+                
+                <div class="flex items-center mt-2 sm:mt-0">
+                    <i class="fas fa-chart-line text-gray-500 mr-2"></i>
+                    <span class="text-sm text-gray-600">Moyenne par transaction: 
+                        <strong>{{ average_amount|default:"0" }} FCFA</strong>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+
+    <!-- Liste des transactions -->
+    {% if transactions %}
+    <div class="space-y-3">
+        {% for transaction in transactions %}
+        <a href="{% url 'transaction_detail' transaction.id %}" class="block">
+            <div class="transaction-card bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow border border-gray-100">
+                <div class="transaction-details">
+                    <div class="flex items-center space-x-4">
+                        {% if transaction.transaction_type == 'deposit' %}
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-plus text-green-600 text-lg"></i>
+                        </div>
+                        {% elif transaction.transaction_type == 'withdrawal' %}
+                        <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-minus text-red-600 text-lg"></i>
+                        </div>
+                        {% elif transaction.transaction_type == 'transfer_in' %}
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-arrow-down text-green-600 text-lg"></i>
+                        </div>
+                        {% elif transaction.transaction_type == 'transfer_out' %}
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-arrow-up text-blue-600 text-lg"></i>
+                        </div>
+                        {% elif transaction.transaction_type == 'bill_payment' %}
+                        <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-file-invoice text-yellow-600 text-lg"></i>
+                        </div>
+                        {% elif transaction.transaction_type == 'mobile_recharge' %}
+                        <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-mobile-alt text-purple-600 text-lg"></i>
+                        </div>
+                        {% else %}
+                        <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-exchange-alt text-gray-600 text-lg"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="transaction-info">
+                            <p class="font-medium text-gray-800">{{ transaction.get_transaction_type_display }}</p>
+                            <p class="text-sm text-gray-500">{{ transaction.timestamp|date:"d/m/Y H:i" }}</p>
+                            {% if transaction.reference %}
+                            <p class="text-xs text-gray-500 mt-1">Réf: {{ transaction.reference }}</p>
+                            {% endif %}
+                            {% if transaction.description %}
+                            <p class="text-xs text-gray-500 mt-1 transaction-description">{{ transaction.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="text-right transaction-amount">
+                        <p class="font-bold text-lg {% if transaction.is_credit %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if transaction.is_credit %}+{% else %}-{% endif %}{{ transaction.amount }} FCFA
+                        </p>
+                        <span class="status-badge
+                            {% if transaction.status == 'completed' %}
+                                bg-green-100 text-green-800
+                            {% elif transaction.status == 'pending' %}
+                                bg-yellow-100 text-yellow-800
+                            {% elif transaction.status == 'failed' %}
+                                bg-red-100 text-red-800
+                            {% else %}
+                                bg-gray-100 text-gray-800
+                            {% endif %}">
+                            <i class="fas {% if transaction.status == 'completed' %}fa-check-circle{% elif transaction.status == 'pending' %}fa-clock{% elif transaction.status == 'failed' %}fa-times-circle{% else %}fa-question-circle{% endif %} mr-1"></i>
+                            {{ transaction.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm p-8 text-center">
+        <div class="flex flex-col items-center justify-center py-6">
+            <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <i class="fas fa-receipt text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-800 mb-2">Aucune transaction</h3>
+            <p class="text-gray-500 max-w-md">Vous n'avez pas encore effectué de transactions ou aucune transaction ne correspond à vos filtres.</p>
+            
+            {% if request.GET %}
+            <a href="{% url 'transaction_history' %}" class="mt-4 inline-block text-primary-600 hover:underline">
+                <i class="fas fa-times mr-1"></i> Réinitialiser les filtres
+            </a>
+            {% else %}
+            <a href="{% url 'deposit' %}" class="mt-4 inline-block text-primary-600 hover:underline">
+                <i class="fas fa-plus mr-1"></i> Effectuer votre premier dépôt
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination (si nécessaire) -->
+    {% if transactions.has_other_pages %}
+    <div class="mt-6 flex justify-center">
+        <nav class="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            {% if transactions.has_previous %}
+            <a href="?page={{ transactions.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <span class="sr-only">Précédent</span>
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% else %}
+            <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
+                <span class="sr-only">Précédent</span>
+                <i class="fas fa-chevron-left"></i>
+            </span>
+            {% endif %}
+            
+            {% for i in transactions.paginator.page_range %}
+                {% if transactions.number == i %}
+                <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 text-sm font-medium text-primary-600">
+                    {{ i }}
+                </span>
+                {% else %}
+                <a href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    {{ i }}
+                </a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if transactions.has_next %}
+            <a href="?page={{ transactions.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <span class="sr-only">Suivant</span>
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% else %}
+            <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
+                <span class="sr-only">Suivant</span>
+                <i class="fas fa-chevron-right"></i>
+            </span>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+,
+
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestion des dates par défaut si elles ne sont pas définies
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        
+        // Définir la date de fin par défaut à aujourd'hui si non définie
+        if (endDateInput && !endDateInput.value) {
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            endDateInput.value = formattedDate;
+        }
+        
+        // Définir la date de début par défaut à 30 jours avant aujourd'hui si non définie
+        if (startDateInput && !startDateInput.value) {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const formattedDate = thirtyDaysAgo.toISOString().split('T')[0];
+            startDateInput.value = formattedDate;
+        }
+        
+        // Validation des dates
+        const filterForm = document.querySelector('form');
+        if (filterForm) {
+            filterForm.addEventListener('submit', function(e) {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                
+                if (startDate > endDate) {
+                    e.preventDefault();
+                    alert('La date de début ne peut pas être postérieure à la date de fin.');
+                    return false;
+                }
+            });
+        }
+        
+        // Animation des cartes de transaction
+        const transactionCards = document.querySelectorAll('.transaction-card');
+        transactionCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 50 * index);
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}
+ 

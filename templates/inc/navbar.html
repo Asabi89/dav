@@ -1,0 +1,209 @@
+<!-- Sidebar pour desktop - version icônes uniquement -->
+<div class="hidden lg:block fixed left-0 top-0 h-full w-16 hover:w-64 bg-primary-700 text-white shadow-lg z-20 transition-all duration-300 overflow-hidden">
+    <div class="p-4">
+        <a href="{% url 'dashboard' %}" class="text-xl font-bold flex items-center mb-8 justify-center lg:justify-start">
+            <i class="fas fa-money-bill-wave text-2xl"></i>
+            <span class="ml-3 opacity-0 lg:group-hover:opacity-100 transition-opacity">OPay</span>
+        </a>
+        <nav class="space-y-4">
+            <a href="{% url 'dashboard' %}" class="flex items-center p-3 rounded-lg hover:bg-primary-600 transition-colors group {% if request.resolver_match.url_name == 'dashboard' %}bg-primary-600{% endif %}">
+                <i class="fas fa-home text-xl w-6"></i>
+                <span class="ml-3 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Accueil</span>
+            </a>
+            <a href="{% url 'wallet_detail' %}" class="flex items-center p-3 rounded-lg hover:bg-primary-600 transition-colors group {% if request.resolver_match.url_name == 'wallet_detail' %}bg-primary-600{% endif %}">
+                <i class="fas fa-wallet text-xl w-6"></i>
+                <span class="ml-3 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Portefeuille</span>
+            </a>
+            <a href="{% url 'transaction_history' %}" class="flex items-center p-3 rounded-lg hover:bg-primary-600 transition-colors group {% if request.resolver_match.url_name == 'transaction_history' %}bg-primary-600{% endif %}">
+                <i class="fas fa-exchange-alt text-xl w-6"></i>
+                <span class="ml-3 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Transactions</span>
+            </a>
+            <a href="{% url 'bill_categories' %}" class="flex items-center p-3 rounded-lg hover:bg-primary-600 transition-colors group {% if request.resolver_match.url_name == 'bill_categories' %}bg-primary-600{% endif %}">
+                <i class="fas fa-file-invoice text-xl w-6"></i>
+                <span class="ml-3 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Paiements</span>
+            </a>
+            <!-- Ajout du lien vers la page de notifications -->
+            <a href="{% url 'notifications' %}" class="flex items-center p-3 rounded-lg hover:bg-primary-600 transition-colors group {% if request.resolver_match.url_name == 'notifications' %}bg-primary-600{% endif %}">
+                <i class="fas fa-bell text-xl w-6"></i>
+                <span class="ml-3 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Notifications</span>
+                {% if unread_notifications_count > 0 %}
+                <span class="ml-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{{ unread_notifications_count }}</span>
+                {% endif %}
+            </a>
+            <div class="border-t border-primary-600 my-4"></div>
+            <!-- Lien vers la page des paramètres -->
+            <a href="{% url 'settings' %}" class="flex items-center p-3 rounded-lg hover:bg-primary-600 transition-colors group {% if request.resolver_match.url_name == 'settings' %}bg-primary-600{% endif %}">
+                <i class="fas fa-cog text-xl w-6"></i>
+                <span class="ml-3 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Paramètres</span>
+            </a>
+            <!-- Déconnexion en bas -->
+            <div class="absolute bottom-4 left-0 right-0 px-4">
+                <a href="{% url 'logout' %}" class="flex items-center p-3 rounded-lg hover:bg-primary-600 transition-colors group">
+                    <i class="fas fa-sign-out-alt text-xl w-6"></i>
+                    <span class="ml-3 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Déconnexion</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+</div>
+
+<!-- Header pour mobile et tablette - icône uniquement -->
+<header class="lg:hidden bg-primary-600 text-white shadow-md fixed top-0 left-0 right-0 z-30">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center py-3">
+            <!-- Logo -->
+            <div class="flex items-center">
+                <a href="{% url 'dashboard' %}" class="text-xl font-bold flex items-center">
+                    <i class="fas fa-money-bill-wave mr-2"></i>
+                    <span>OPay</span>
+                </a>
+            </div>
+            
+            <!-- Icônes de droite -->
+            <div class="flex items-center space-x-4">
+                <!-- Icône de contact -->
+                <a href="{% url 'contact' %}" class="focus:outline-none">
+                    <i class="fas fa-headset text-xl"></i>
+                </a>
+                
+                <!-- Notifications - Rendu fonctionnel avec dropdown -->
+                <div class="relative">
+                    <button id="notificationButton" class="relative focus:outline-none">
+                        <i class="fas fa-bell text-xl"></i>
+                        {% if unread_notifications_count > 0 %}
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{{ unread_notifications_count }}</span>
+                        {% endif %}
+                    </button>
+                    
+                    <!-- Dropdown des notifications -->
+                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 text-gray-800">
+                        <div class="py-2 px-3 bg-gray-100 border-b border-gray-200 flex justify-between items-center">
+                            <span class="font-medium">Notifications</span>
+                            {% if unread_notifications_count > 0 %}
+                            <a href="{% url 'mark_all_read' %}" class="text-xs text-primary-600 hover:text-primary-800">Marquer tout comme lu</a>
+                            {% endif %}
+                        </div>
+                        <div class="max-h-80 overflow-y-auto">
+                            {% if notifications %}
+                            {% for notification in notifications|slice:":5" %}
+                            <a href="{{ notification.link }}" class="block px-4 py-3 hover:bg-gray-50 {% if not notification.read %}bg-blue-50{% endif %}">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 mr-3">
+                                        <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                                            <i class="fas fa-{{ notification.icon|default:'bell' }} text-primary-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-900">{{ notification.title }}</p>
+                                        <p class="text-xs text-gray-500">{{ notification.message }}</p>
+                                        <p class="text-xs text-gray-400 mt-1">{{ notification.created_at|timesince }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                            {% else %}
+                            <div class="px-4 py-6 text-center text-gray-500">
+                                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                                <p>Aucune notification</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="py-2 px-3 bg-gray-100 border-t border-gray-200 text-center">
+                            <a href="{% url 'notifications' %}" class="text-xs text-primary-600 hover:text-primary-800">Voir toutes les notifications</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Photo de profil qui redirige vers la page profil -->
+                <a href="{% url 'profile_detail' %}" class="flex items-center focus:outline-none">
+                    {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" class="w-8 h-8 rounded-full">
+                    {% else %}
+                    <div class="w-8 h-8 rounded-full bg-primary-400 flex items-center justify-center">
+                        <span>{{ user.first_name|first }}{{ user.last_name|first }}</span>
+                    </div>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Navbar mobile en bas - icônes uniquement -->
+<nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-20">
+    <div class="flex justify-around">
+        <a href="{% url 'dashboard' %}" class="flex flex-col items-center py-3 px-3 {% if request.resolver_match.url_name == 'dashboard' %}text-primary-600{% else %}text-gray-500{% endif %}">
+            <i class="fas fa-home text-xl"></i>
+            <span class="text-xs mt-1">Accueil</span>
+        </a>
+        <a href="{% url 'wallet_detail' %}" class="flex flex-col items-center py-3 px-3 {% if request.resolver_match.url_name == 'wallet_detail' %}text-primary-600{% else %}text-gray-500{% endif %}">
+            <i class="fas fa-wallet text-xl"></i>
+            <span class="text-xs mt-1">Portefeuille</span>
+        </a>
+        <a href="{% url 'transaction_history' %}" class="flex flex-col items-center py-3 px-3 {% if request.resolver_match.url_name == 'transaction_history' %}text-primary-600{% else %}text-gray-500{% endif %}">
+            <i class="fas fa-exchange-alt text-xl"></i>
+            <span class="text-xs mt-1">Transactions</span>
+        </a>
+        <a href="{% url 'bill_categories' %}" class="flex flex-col items-center py-3 px-3 {% if request.resolver_match.url_name == 'bill_categories' %}text-primary-600{% else %}text-gray-500{% endif %}">
+            <i class="fas fa-file-invoice text-xl"></i>
+            <span class="text-xs mt-1">Paiements</span>
+        </a>
+        <a href="{% url 'settings' %}" class="flex flex-col items-center py-3 px-3 {% if request.resolver_match.url_name == 'settings' %}text-primary-600{% else %}text-gray-500{% endif %}">
+            <i class="fas fa-cog text-xl"></i>
+            <span class="text-xs mt-1">Paramètres</span>
+        </a>
+    </div>
+</nav>
+
+<!-- Ajout de styles pour gérer les espaces et le responsive -->
+<style>
+    /* Ajustements pour le header mobile et le contenu */
+    @media (max-width: 1023px) {
+        body {
+            padding-top: 56px; /* Hauteur du header mobile */
+            padding-bottom: 70px; /* Hauteur de la navbar mobile */
+        }
+        .app-container {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
+        .page-container {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
+    }
+    
+    /* Ajustements pour desktop avec sidebar */
+    @media (min-width: 1024px) {
+        body {
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .app-container {
+            margin-left: 4rem; /* 16px * 4 = 64px (largeur de la sidebar) */
+        }
+    }
+</style>
+
+<!-- Script pour gérer le dropdown des notifications -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const notificationButton = document.getElementById('notificationButton');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        
+        if (notificationButton && notificationDropdown) {
+            // Toggle dropdown quand on clique sur le bouton
+            notificationButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                notificationDropdown.classList.toggle('hidden');
+            });
+            
+            // Fermer le dropdown quand on clique ailleurs
+            document.addEventListener('click', function(e) {
+                if (!notificationDropdown.contains(e.target) && e.target !== notificationButton) {
+                    notificationDropdown.classList.add('hidden');
+                }
+            });
+        }
+    });
+</script>

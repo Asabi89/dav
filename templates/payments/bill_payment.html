@@ -1,0 +1,976 @@
+{% extends 'base.html' %}
+
+{% block title %}Paiement de facture | OPay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Styles pour la carte de paiement */
+    .payment-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-radius: 1rem;
+        border: 2px solid rgba(209, 213, 219, 0.5);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .payment-card:hover {
+        border-color: #0d9488;
+        box-shadow: 0 8px 16px rgba(13, 148, 136, 0.1), 0 2px 4px rgba(13, 148, 136, 0.1);
+        transform: translateY(-3px);
+    }
+    
+    /* Effet de brillance */
+    .card-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+        border-radius: 1rem;
+    }
+    
+    /* Animation pour les champs de formulaire */
+    .form-input, .form-select {
+        border: 2px solid #e5e7eb;
+        transition: all 0.2s ease;
+    }
+    
+    .form-input:focus, .form-select:focus {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-color: #0d9488;
+    }
+    
+    /* Styles pour les boutons de montant rapide */
+    .quick-amount {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+        background-color: #f9fafb;
+        color: #374151;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border: 2px solid #e5e7eb;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+    }
+    
+    .quick-amount:hover {
+        background-color: #f3f4f6;
+        border-color: #0d9488;
+    }
+    
+    .quick-amount.selected {
+        background-color: #0d9488;
+        color: white;
+        border-color: #0d9488;
+        box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+    }
+    
+    /* Animation pour le bouton de soumission */
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(13, 148, 136, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);
+        }
+    }
+    
+    .submit-button {
+        animation: pulse 2s infinite;
+        border: 2px solid #0d9488;
+    }
+    
+    /* Styles pour la carte de solde */
+    .balance-card {
+        background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+        color: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 6px 12px rgba(13, 148, 136, 0.1);
+        border: 2px solid rgba(13, 148, 136, 0.3);
+    }
+    
+    .balance-shine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+        pointer-events: none;
+    }
+    
+    /* Styles pour les messages */
+    .message-animation {
+        animation: slideIn 0.5s ease-out forwards;
+    }
+    
+    @keyframes slideIn {
+        0% {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+        100% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    /* Styles pour les étapes du processus */
+    .step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .step-number {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background-color: #f3f4f6;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-right: 0.75rem;
+        border: 2px solid #e5e7eb;
+    }
+    
+    .step.active .step-number {
+        background-color: #0d9488;
+        color: white;
+        border-color: #0d9488;
+    }
+    
+    .step-content {
+        flex: 1;
+    }
+    
+    .step-title {
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    .step.active .step-title {
+        color: #0d9488;
+    }
+    
+    .step-description {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    /* Bordures améliorées pour les cartes de fournisseurs récents */
+    .recent-provider {
+        border: 2px solid rgba(209, 213, 219, 0.5);
+        transition: all 0.2s ease;
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+    
+    .recent-provider:hover {
+        border-color: #0d9488;
+        background-color: rgba(13, 148, 136, 0.05);
+        transform: translateX(5px);
+    }
+    
+    .recent-provider.selected {
+        border-color: #0d9488;
+        background-color: rgba(13, 148, 136, 0.1);
+    }
+    
+    /* Styles pour les fournisseurs récents */
+    .recent-providers-container {
+        border: 2px solid rgba(209, 213, 219, 0.5);
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+    }
+    
+    .recent-providers-container:hover {
+        border-color: rgba(13, 148, 136, 0.3);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .recent-providers-header {
+        border-bottom: 2px solid rgba(209, 213, 219, 0.5);
+        padding: 1rem;
+        background-color: #f9fafb;
+    }
+    
+    /* Styles pour les icônes des fournisseurs */
+    .provider-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f3f4f6;
+        border: 2px solid #e5e7eb;
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+    
+    .recent-provider:hover .provider-icon {
+        border-color: #0d9488;
+        transform: scale(1.05);
+    }
+    
+    /* Amélioration des boutons d'action */
+    .action-button {
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .action-button:hover {
+        border-color: #0d9488;
+        transform: translateY(-2px);
+    }
+    
+    /* Amélioration des champs de formulaire */
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #374151;
+    }
+    
+    .form-input-container {
+        position: relative;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .form-input-container:focus-within {
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+    }
+    
+    .form-input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+    }
+    
+    .form-input-with-icon {
+        padding-left: 2.5rem;
+    }
+    
+    /* Styles pour les messages d'erreur */
+    .error-message {
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .error-message i {
+        margin-right: 0.25rem;
+    }
+    
+    /* Styles pour les états de chargement */
+    .loading-overlay {
+        position: absolute;
+        inset: 0;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        border-radius: 1rem;
+    }
+    
+    .spinner {
+        width: 2rem;
+        height: 2rem;
+        border: 3px solid rgba(13, 148, 136, 0.3);
+        border-radius: 50%;
+        border-top-color: #0d9488;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+    <!-- En-tête avec navigation -->
+    <div class="mb-6">
+        <div class="flex items-center mb-2">
+            {% if form.initial.provider %}
+                <a href="{% url 'bill_providers' form.initial.provider.category.id %}" class="text-primary-600 mr-2 hover:text-primary-700 transition-colors">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+            {% else %}
+                <a href="{% url 'bill_categories' %}" class="text-primary-600 mr-2 hover:text-primary-700 transition-colors">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+            {% endif %}
+            <h1 class="text-2xl font-bold text-gray-800">Paiement de facture</h1>
+        </div>
+        <p class="text-gray-600">Remplissez les informations pour effectuer votre paiement</p>
+    </div>
+    
+    <!-- Étapes du processus -->
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200">
+        <div class="step active">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <div class="step-title">Saisie des informations</div>
+                <div class="step-description">Entrez les détails de votre facture</div>
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <div class="step-title">Confirmation</div>
+                <div class="step-description">Vérifiez et confirmez votre paiement</div>
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <div class="step-title">Paiement</div>
+                <div class="step-description">Traitement et confirmation du paiement</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Messages d'alerte -->
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-xl message-animation {% if message.tags == 'error' %}bg-red-100 text-red-700 border border-red-200{% elif message.tags == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-blue-100 text-blue-700 border border-blue-200{% endif %}">
+            <div class="flex items-center">
+                {% if message.tags == 'error' %}
+                    <i class="fas fa-exclamation-circle mr-2 text-red-500"></i>
+                {% elif message.tags == 'success' %}
+                    <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                {% else %}
+                    <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                {% endif %}
+                {{ message }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Formulaire de paiement -->
+        <div class="md:col-span-2">
+            <div class="payment-card bg-white rounded-xl shadow-md overflow-hidden border-2 border-gray-200 mb-6">
+                <div class="card-shine"></div>
+                <div class="p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-file-invoice-dollar text-primary-600 mr-2"></i>
+                        Détails du paiement
+                    </h2>
+                    
+                    <form method="post" action="" id="paymentForm">
+                        {% csrf_token %}
+                        
+                        <!-- Fournisseur -->
+                        <div class="mb-4">
+                            <label for="{{ form.provider.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Fournisseur <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-building text-gray-400"></i>
+                                </div>
+                                {{ form.provider }}
+                            </div>
+                            {% if form.provider.errors %}
+                            <p class="text-red-500 text-xs mt-1">
+                                <i class="fas fa-exclamation-circle mr-1"></i>{{ form.provider.errors }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Numéro de compte -->
+                        <div class="mb-4">
+                            <label for="{{ form.account_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1" id="account_number_label">
+                                {{ form.account_number.label|default:"Numéro de compte" }} <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-hashtag text-gray-400"></i>
+                                </div>
+                                {{ form.account_number }}
+                            </div>
+                            {% if form.account_number.errors %}
+                            <p class="text-red-500 text-xs mt-1">
+                                <i class="fas fa-exclamation-circle mr-1"></i>{{ form.account_number.errors }}
+                            </p>
+                            {% endif %}
+                            <p class="text-xs text-gray-500 mt-1">Entrez le numéro associé à votre facture</p>
+                        </div>
+                        
+                        <!-- Montant -->
+                        <div class="mb-6">
+                            <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Montant (FCFA) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-money-bill-wave text-gray-400"></i>
+                                </div>
+                                {{ form.amount }}
+                            </div>
+                            {% if form.amount.errors %}
+                            <p class="text-red-500 text-xs mt-1">
+                                <i class="fas fa-exclamation-circle mr-1"></i>{{ form.amount.errors }}
+                            </p>
+                            {% endif %}
+                            
+                           <!-- Montants rapides -->
+<div class="mt-3">
+    <p class="text-xs text-gray-500 mb-2">Montants rapides :</p>
+    <div class="flex flex-wrap gap-2">
+        <button type="button" class="quick-amount rounded-lg px-4 py-2 font-medium" data-amount="1000">1 000 FCFA</button>
+        <button type="button" class="quick-amount rounded-lg px-4 py-2 font-medium" data-amount="5000">5 000 FCFA</button>
+        <button type="button" class="quick-amount rounded-lg px-4 py-2 font-medium" data-amount="10000">10 000 FCFA</button>
+        <button type="button" class="quick-amount rounded-lg px-4 py-2 font-medium" data-amount="25000">25 000 FCFA</button>
+    </div>
+</div>
+
+                        <!-- Description (optionnelle) -->
+                        <div class="mb-6">
+                            <label for="id_description" class="block text-sm font-medium text-gray-700 mb-1">
+                                Description (optionnel)
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-align-left text-gray-400"></i>
+                                </div>
+                                <input type="text" id="id_description" name="description" class="form-input pl-10 py-3 rounded-lg w-full" placeholder="Ex: Facture d'électricité Janvier">
+                            </div>
+                        </div>
+                        
+                        <!-- Bouton de soumission -->
+                        <button type="submit" id="submitButton" class="submit-button w-full px-4 py-3 bg-primary-600 text-white hover:bg-primary-700 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 border border-primary-700 flex items-center justify-center transition-all">
+                            <i class="fas fa-check-circle mr-2"></i> Confirmer le paiement
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Information sur le paiement -->
+            <div class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800">Information</h3>
+                        <div class="mt-2 text-sm text-blue-700">
+                            <p>Le paiement sera débité immédiatement de votre portefeuille OPay. Assurez-vous que les informations saisies sont correctes.</p>
+                            <p class="mt-2">Les paiements sont généralement traités en quelques minutes, mais peuvent prendre jusqu'à 24 heures selon le fournisseur.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panneau latéral -->
+        <div class="md:col-span-1">
+            <!-- Carte de solde -->
+<div class="balance-card mb-6">
+    <div class="balance-shine"></div>
+    <div class="flex items-center mb-2">
+        <i class="fas fa-wallet text-white opacity-80 mr-2"></i>
+        <p class="text-sm text-white opacity-80">Solde disponible</p>
+    </div>
+    <p class="text-2xl font-bold">{{ wallet.balance }} FCFA</p>
+    <div class="mt-4 text-right">
+        <a href="{% url 'deposit' %}" class="inline-flex items-center justify-center px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full text-sm text-white font-medium transition-all">
+            <i class="fas fa-plus mr-1"></i> Recharger
+        </a>
+    </div>
+</div>
+
+            
+           <!-- Fournisseurs récents -->
+<div class="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200">
+    <h3 class="text-md font-semibold mb-3 flex items-center">
+        <i class="fas fa-history text-primary-600 mr-2"></i> Fournisseurs récents
+    </h3>
+    
+    <div class="space-y-3">
+        {% for provider in recent_providers|default:'' %}
+        <button type="button" class="recent-provider w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-all" data-provider-id="{{ provider.id }}">
+            <div class="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center mr-3 border border-primary-100">
+                {% if provider.logo %}
+                <img src="{{ provider.logo.url }}" alt="{{ provider.name }}" class="w-8 h-8 object-contain">
+                {% else %}
+                <i class="fas fa-building text-primary-500"></i>
+                {% endif %}
+            </div>
+            <div class="text-left flex-1">
+                <p class="font-medium text-gray-800">{{ provider.name }}</p>
+                <p class="text-xs text-gray-500">{{ provider.category.name }}</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 ml-2"></i>
+        </button>
+        {% empty %}
+        <div class="text-center py-4">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-building text-gray-400 text-xl"></i>
+            </div>
+            <p class="text-gray-500 text-sm">Aucun fournisseur récent</p>
+            <a href="{% url 'bill_categories' %}" class="text-primary-600 hover:underline text-sm mt-2 inline-block">
+                Parcourir les catégories
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+            
+            <!-- Paiements récents -->
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200">
+                <h3 class="text-md font-semibold mb-3 flex items-center">
+                    <i class="fas fa-receipt text-primary-600 mr-2"></i> Paiements récents
+                </h3>
+                
+                <div class="space-y-3">
+                    {% for payment in recent_payments|default:'' %}
+                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-all">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-file-invoice-dollar text-primary-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-800">{{ payment.provider.name }}</p>
+                                <p class="text-xs text-gray-500">{{ payment.created_at|date:"d/m/Y" }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-gray-800">{{ payment.amount }} FCFA</p>
+                            <a href="{% url 'transaction_detail' payment.transaction.id %}" class="text-xs text-primary-600 hover:underline">Détails</a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <p class="text-gray-500 text-sm">Aucun paiement récent</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <a href="{% url 'transaction_history' %}?type=payment" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                        Voir tous les paiements <i class="fas fa-chevron-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Aide et support -->
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <h3 class="text-md font-semibold mb-2 flex items-center">
+                    <i class="fas fa-question-circle text-primary-600 mr-2"></i> Besoin d'aide ?
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    Si vous rencontrez des difficultés avec votre paiement, notre équipe de support est disponible pour vous aider.
+                </p>
+                <a href="{% url 'contact' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center">
+                    Contacter le support <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de confirmation -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Confirmer le paiement</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">Vous êtes sur le point d'effectuer un paiement de <span id="confirmAmount" class="font-bold text-primary-600"></span> FCFA à <span id="confirmProvider" class="font-bold"></span>.</p>
+                <div class="bg-gray-50 p-3 rounded-md">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">Fournisseur:</span>
+                        <span id="modalProvider" class="font-medium"></span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600" id="modalAccountLabel">Numéro de compte:</span>
+                        <span id="modalAccount" class="font-medium"></span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">Montant:</span>
+                        <span id="modalAmount" class="font-medium"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Frais:</span>
+                        <span id="modalFees" class="font-medium">0 FCFA</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelPaymentBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300">
+                    Annuler
+                </button>
+                <button id="confirmPaymentBtn" class="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700">
+                    Confirmer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments du DOM
+        const providerSelect = document.getElementById('{{ form.provider.id_for_label }}');
+        const accountNumberField = document.getElementById('{{ form.account_number.id_for_label }}');
+        const accountNumberLabel = document.getElementById('account_number_label');
+        const amountField = document.getElementById('{{ form.amount.id_for_label }}');
+        const quickAmountBtns = document.querySelectorAll('.quick-amount');
+        const paymentForm = document.getElementById('paymentForm');
+        const submitButton = document.getElementById('submitButton');
+        const confirmModal = document.getElementById('confirmModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
+        const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+        const confirmAmount = document.getElementById('confirmAmount');
+        const confirmProvider = document.getElementById('confirmProvider');
+        const modalProvider = document.getElementById('modalProvider');
+        const modalAccount = document.getElementById('modalAccount');
+        const modalAccountLabel = document.getElementById('modalAccountLabel');
+        const modalAmount = document.getElementById('modalAmount');
+        const recentProviders = document.querySelectorAll('.recent-provider');
+        const balanceCard = document.querySelector('.balance-card');
+        const balanceShine = document.querySelector('.balance-shine');
+        const paymentCard = document.querySelector('.payment-card');
+        const cardShine = document.querySelector('.card-shine');
+        
+        // Effet de brillance pour la carte de solde
+        if (balanceCard && balanceShine) {
+            balanceCard.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                balanceShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            balanceCard.addEventListener('mouseleave', function() {
+                balanceShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+        
+        // Effet de brillance pour la carte de paiement
+        if (paymentCard && cardShine) {
+            paymentCard.addEventListener('mousemove', function(e) {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                const width = this.offsetWidth;
+                const height = this.offsetHeight;
+                
+                const xPercent = x / width * 100;
+                const yPercent = y / height * 100;
+                
+                cardShine.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)`;
+            });
+            
+            paymentCard.addEventListener('mouseleave', function() {
+                cardShine.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 60%)';
+            });
+        }
+        
+        // Mise à jour du libellé du numéro de compte en fonction du fournisseur
+        if (providerSelect) {
+            providerSelect.addEventListener('change', function() {
+                const providerId = this.value;
+                if (providerId) {
+                    fetch(`/api/providers/${providerId}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.account_number_label) {
+                                accountNumberLabel.textContent = data.account_number_label + ' *';
+                                modalAccountLabel.textContent = data.account_number_label + ':';
+                            } else {
+                                accountNumberLabel.textContent = "Numéro de compte *";
+                                modalAccountLabel.textContent = "Numéro de compte:";
+                            }
+                            
+                            // Mettre à jour le placeholder du champ
+                            if (data.account_number_placeholder) {
+                                accountNumberField.placeholder = data.account_number_placeholder;
+                            } else {
+                                accountNumberField.placeholder = "Entrez votre numéro de compte";
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
+            });
+        }
+        
+        // Gestion des boutons de montant rapide
+        quickAmountBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const amount = this.getAttribute('data-amount');
+                
+                // Mettre à jour le champ de montant
+                amountField.value = amount;
+                
+                // Mettre à jour l'apparence des boutons
+                quickAmountBtns.forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+        
+        // Gestion des fournisseurs récents
+        recentProviders.forEach(provider => {
+            provider.addEventListener('click', function() {
+                const providerId = this.getAttribute('data-provider-id');
+                providerSelect.value = providerId;
+                
+                // Déclencher l'événement change pour mettre à jour le libellé
+                const event = new Event('change');
+                providerSelect.dispatchEvent(event);
+            });
+        });
+        
+        // Validation du formulaire
+        if (paymentForm) {
+            paymentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Vérifier si les champs sont remplis
+                if (!providerSelect.value) {
+                    alert('Veuillez sélectionner un fournisseur.');
+                    return;
+                }
+                
+                if (!accountNumberField.value) {
+                    alert('Veuillez entrer un numéro de compte.');
+                    return;
+                }
+                
+                const amount = parseFloat(amountField.value);
+                if (isNaN(amount) || amount <= 0) {
+                    alert('Veuillez entrer un montant valide.');
+                    return;
+                }
+                
+                               // Afficher le modal de confirmation
+                const providerText = providerSelect.options[providerSelect.selectedIndex].text;
+                confirmAmount.textContent = amount.toLocaleString('fr-FR');
+                confirmProvider.textContent = providerText;
+                modalProvider.textContent = providerText;
+                modalAccount.textContent = accountNumberField.value;
+                modalAmount.textContent = amount.toLocaleString('fr-FR') + ' FCFA';
+                
+                confirmModal.classList.remove('hidden');
+            });
+        }
+        
+        // Gestion du modal de confirmation
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', function() {
+                confirmModal.classList.add('hidden');
+            });
+        }
+        
+        if (cancelPaymentBtn) {
+            cancelPaymentBtn.addEventListener('click', function() {
+                confirmModal.classList.add('hidden');
+            });
+        }
+        
+        if (confirmPaymentBtn) {
+            confirmPaymentBtn.addEventListener('click', function() {
+                // Fermer le modal
+                confirmModal.classList.add('hidden');
+                
+                // Désactiver le bouton pour éviter les soumissions multiples
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Traitement en cours...';
+                
+                // Soumettre le formulaire
+                paymentForm.submit();
+            });
+        }
+        
+        // Fermer le modal en cliquant en dehors
+        confirmModal.addEventListener('click', function(e) {
+            if (e.target === confirmModal) {
+                confirmModal.classList.add('hidden');
+            }
+        });
+        
+        // Formatage du montant en temps réel
+        if (amountField) {
+            amountField.addEventListener('input', function() {
+                // Supprimer tout sauf les chiffres et le point
+                let value = this.value.replace(/[^\d.]/g, '');
+                
+                // S'assurer qu'il n'y a qu'un seul point décimal
+                const parts = value.split('.');
+                if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                }
+                
+                // Limiter à 2 décimales
+                if (parts.length > 1 && parts[1].length > 2) {
+                    value = parts[0] + '.' + parts[1].substring(0, 2);
+                }
+                
+                // Mettre à jour la valeur
+                this.value = value;
+                
+                // Réinitialiser la sélection des boutons rapides
+                if (value) {
+                    const amount = parseFloat(value);
+                    let matchFound = false;
+                    
+                    quickAmountBtns.forEach(btn => {
+                        const btnAmount = parseFloat(btn.getAttribute('data-amount'));
+                        if (amount === btnAmount) {
+                            btn.classList.add('selected');
+                            matchFound = true;
+                        } else {
+                            btn.classList.remove('selected');
+                        }
+                    });
+                    
+                    if (!matchFound) {
+                        quickAmountBtns.forEach(btn => btn.classList.remove('selected'));
+                    }
+                } else {
+                    quickAmountBtns.forEach(btn => btn.classList.remove('selected'));
+                }
+            });
+        }
+        
+        // Animation des étapes
+        const steps = document.querySelectorAll('.step');
+        if (steps.length > 0) {
+            // Animer les étapes séquentiellement
+            setTimeout(() => {
+                steps[0].classList.add('active');
+                
+                // Ajouter une classe pour l'animation
+                steps[0].style.transition = 'all 0.3s ease';
+                steps[0].querySelector('.step-number').style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    steps[0].querySelector('.step-number').style.transform = '';
+                }, 300);
+            }, 500);
+        }
+        
+        // Amélioration de l'expérience mobile
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.quick-amount, .recent-provider').forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                button.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        }
+        
+        // Vérifier si le fournisseur est déjà sélectionné au chargement
+        if (providerSelect && providerSelect.value) {
+            // Déclencher l'événement change pour mettre à jour le libellé
+            const event = new Event('change');
+            providerSelect.dispatchEvent(event);
+        }
+    });
+
+    // Gestion des fournisseurs récents
+recentProviders.forEach(provider => {
+    provider.addEventListener('click', function() {
+        const providerId = this.getAttribute('data-provider-id');
+        
+        // Mettre à jour le select
+        providerSelect.value = providerId;
+        
+        // Ajouter une classe pour indiquer la sélection
+        recentProviders.forEach(p => p.classList.remove('bg-primary-50', 'border-primary-300'));
+        this.classList.add('bg-primary-50', 'border-primary-300');
+        
+        // Déclencher l'événement change pour mettre à jour le libellé
+        const event = new Event('change');
+        providerSelect.dispatchEvent(event);
+        
+        // Faire défiler jusqu'au formulaire
+        document.getElementById('paymentForm').scrollIntoView({ behavior: 'smooth' });
+        
+        // Mettre le focus sur le champ de numéro de compte
+        setTimeout(() => {
+            accountNumberField.focus();
+        }, 500);
+    });
+});
+
+// Amélioration de l'effet de brillance
+function updateShineEffect(element, shineElement) {
+    element.addEventListener('mousemove', function(e) {
+        const x = e.offsetX;
+        const y = e.offsetY;
+        const width = this.offsetWidth;
+        const height = this.offsetHeight;
+        
+        const xPercent = x / width * 100;
+        const yPercent = y / height * 100;
+        
+        shineElement.style.background = `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 60%)`;
+    });
+    
+    element.addEventListener('mouseleave', function() {
+        shineElement.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)';
+    });
+}
+
+// Appliquer l'effet aux cartes
+updateShineEffect(balanceCard, balanceShine);
+updateShineEffect(paymentCard, cardShine);
+
+
+</script>
+{% endblock %}
